@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+    <title>websockets</title>
+</head>
+<body>
+    <script type="text/javascript">
+        function go() {
+            mySocket = new MozWebSocket("ws://localhost:8080/socketserver");
+            mySocket.onopen = function () {
+                mySocket.send("Here's some text that the server is urgently awaiting!");
+            };
+            mySocket.onmessage = function (evt) {
+                var f = document.getElementById("messages");
+                var li = document.createElement("li");
+                li.textContent = evt.data;
+                f.appendChild(li);
+            };
+        }
+        function more() {
+            mySocket.send("Here's more text on the same connection!");
+        }
+    </script>
+    <input type="button" onclick="javascript:go()" value="Go" />
+    <input type="button" onclick="javascript:more()" value="More" />
+    <ul id="messages">
+        Messages</ul>
+</body>
+</html>
