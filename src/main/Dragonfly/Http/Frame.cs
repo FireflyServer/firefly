@@ -198,8 +198,7 @@ namespace Dragonfly.Http
 
         static string GetString(ArraySegment<byte> range, int startIndex, int endIndex)
         {
-            // TODO look up the right encoding for the http mechanical portion
-            return Encoding.ASCII.GetString(range.Array, range.Offset + startIndex, endIndex - startIndex);
+            return Encoding.Default.GetString(range.Array, range.Offset + startIndex, endIndex - startIndex);
         }
 
 
