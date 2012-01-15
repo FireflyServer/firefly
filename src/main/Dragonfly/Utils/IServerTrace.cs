@@ -15,6 +15,9 @@ namespace Dragonfly.Utils
 
         // TraceEventType.Information
         ServerFactoryConnectionExecute,
+
+        // TraceEventType.Warning
+        ConnectionSendSocketError,
     };
 
     public interface IServerTrace

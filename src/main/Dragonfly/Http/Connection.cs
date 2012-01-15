@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -164,11 +165,12 @@ namespace Dragonfly.Http
                                  len = (uint)buffer.Count
                              };
                 flags = SocketFlags.None;
+                numberOfBytesRecvd = 0;
                 recvResult = WSARecv(
                     _socket.Handle,
                     ref wsabuf,
                     1,
-                    out numberOfBytesRecvd,
+                    ref numberOfBytesRecvd,
                     ref flags,
                     null,
                     IntPtr.Zero);
@@ -181,14 +183,20 @@ namespace Dragonfly.Http
                 _receiveCount = (int)numberOfBytesRecvd;
                 goto marker1;
             }
+            if (recvError != SocketError.WouldBlock)
+            {
+                _receiveCount = 0;
+                goto marker1;
+            }
 
             wsabuf = new WSABUF { buf = IntPtr.Zero, len = 0 };
             flags = SocketFlags.None;
+            numberOfBytesRecvd = 0;
             recvResult = WSARecv(
                 _socket.Handle,
                 ref wsabuf,
                 1,
-                out numberOfBytesRecvd,
+                ref numberOfBytesRecvd,
                 ref flags,
                 _recvOverlapped,
                 IntPtr.Zero);
@@ -196,7 +204,7 @@ namespace Dragonfly.Http
             if (recvError == SocketError.IOPending)
                 return;
 
-            _receiveCount = (int)numberOfBytesRecvd;
+            _receiveCount = recvError == SocketError.Success ? (int)numberOfBytesRecvd : 0;
         marker3:
             if (_receiveCount == 0)
                 goto marker4;
@@ -246,47 +254,132 @@ namespace Dragonfly.Http
             IntPtr s,
             ref WSABUF lpBuffers,
             UInt32 dwBufferCount,
-            out UInt32 lpNumberOfBytesRecvd,
+            ref UInt32 lpNumberOfBytesRecvd,
             ref SocketFlags lpFlags,
             NativeOverlapped* lpOverlapped,
             IntPtr lpCompletionRoutine);
 
 
+        struct SendInfo
+        {
+            public int BytesSent { get; set; }
+            public SocketError SocketError { get; set; }
+        }
+
         private bool ProduceData(ArraySegment<byte> data, Action callback)
         {
-            SocketError errorCode;
-            int sent;
-
             if (callback == null)
             {
-                sent = _socket.Send(data.Array, data.Offset, data.Count, SocketFlags.None, out errorCode);
+                DoProduce(data);
                 return false;
             }
 
-            var sr = _socket.BeginSend(
-                data.Array,
-                data.Offset,
-                data.Count,
-                SocketFlags.None,
-                ar =>
+            return DoProduce(data, callback);
+        }
+
+        private void DoProduce(ArraySegment<byte> data)
+        {
+            var remaining = data;
+
+            while (remaining.Count != 0)
+            {
+                SocketError errorCode;
+                var sent = _socket.Send(remaining.Array, remaining.Offset, remaining.Count, SocketFlags.None, out errorCode);
+                if (errorCode != SocketError.Success)
                 {
-                    if (ar.CompletedSynchronously) return;
-                    SocketError aec;
-                    var asent = _socket.EndSend(ar, out aec);
-                    callback();
-                }, null);
+                    _trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
+                    break;
+                }
+                if (sent == remaining.Count)
+                {
+                    break;
+                }
 
-            if (!sr.CompletedSynchronously)
-                return true;
+                remaining = new ArraySegment<byte>(
+                    remaining.Array,
+                    remaining.Offset + sent,
+                    remaining.Count - sent);
 
-            sent = _socket.EndSend(sr, out errorCode);
+                // BLOCK - enters a wait state for sync output waiting for kernel buffer to be writable
+                Socket.Select(null, new List<Socket> { _socket }, null, -1);
+            }
+        }
+
+        // ReSharper disable AccessToModifiedClosure
+        private bool DoProduce(ArraySegment<byte> data, Action callback)
+        {
+            var remaining = data;
+
+            while (remaining.Count != 0)
+            {
+                var info = DoSend(
+                    remaining,
+                    asyncInfo =>
+                    {
+                        if (asyncInfo.SocketError != SocketError.Success)
+                        {
+                            _trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
+                            callback();
+                            return;
+                        }
+                        if (asyncInfo.BytesSent == remaining.Count)
+                        {
+                            callback();
+                            return;
+                        }
+
+                        if (!DoProduce(
+                            new ArraySegment<byte>(
+                                remaining.Array,
+                                remaining.Offset + asyncInfo.BytesSent,
+                                remaining.Count - asyncInfo.BytesSent),
+                            callback))
+                        {
+                            callback();
+                        }
+                    });
+                if (info.SocketError == SocketError.IOPending)
+                {
+                    return true;
+                }
+                if (info.SocketError != SocketError.Success)
+                {
+                    _trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
+                    break;
+                }
+                if (info.BytesSent == remaining.Count)
+                {
+                    break;
+                }
+
+                remaining = new ArraySegment<byte>(
+                        remaining.Array,
+                        remaining.Offset + info.BytesSent,
+                        remaining.Count - info.BytesSent);
+            }
             return false;
+        }
+        // ReSharper restore AccessToModifiedClosure
+
+        private SendInfo DoSend(ArraySegment<byte> data, Action<SendInfo> callback)
+        {
+            var e = new SocketAsyncEventArgs();
+            e.Completed += (_, __) => callback(new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError });
+            e.SetBuffer(data.Array, data.Offset, data.Count);
+            var delayed = _socket.SendAsync(e);
+
+            return delayed
+                ? new SendInfo { SocketError = SocketError.IOPending }
+                : new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError };
         }
 
         private void ProduceEnd()
         {
             //TODO keep-alive
-            _socket.Shutdown(SocketShutdown.Send);
+            if (_socket.Connected)
+            {
+                _socket.Shutdown(SocketShutdown.Send);
+            }
         }
 
 
