@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Dragonfly.Http
 {
@@ -30,7 +31,7 @@ namespace Dragonfly.Http
 
             if (availableSize < minimumSize)
             {
-                if (availableSize + Buffer.Offset >= minimumSize && false)
+                if (availableSize + Buffer.Offset >= minimumSize)
                 {
                     Array.Copy(Buffer.Array, Buffer.Offset, Buffer.Array, 0, Buffer.Count);
                     Buffer = new ArraySegment<byte>(Buffer.Array, 0, Buffer.Count);
@@ -49,6 +50,12 @@ namespace Dragonfly.Http
 
         public void Extend(int count)
         {
+            Debug.Assert(count >= 0);
+            Debug.Assert(Buffer.Offset >= 0);
+            Debug.Assert(Buffer.Offset <= Buffer.Array.Length);
+            Debug.Assert(Buffer.Offset + Buffer.Count <= Buffer.Array.Length);
+            Debug.Assert(Buffer.Offset + Buffer.Count + count <= Buffer.Array.Length);
+
             Buffer = new ArraySegment<byte>(Buffer.Array, Buffer.Offset, Buffer.Count + count);
         }
 
