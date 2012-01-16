@@ -12,7 +12,9 @@ namespace Profile.Server
     {
         public void Event(TraceEventType type, TraceMessage message)
         {
-            // Console.WriteLine("[{0} {1}]", type, message);
+#if DEBUG
+            Console.WriteLine("[{0} {1}]", type, message);
+#endif
         }
     }
 
@@ -22,7 +24,19 @@ namespace Profile.Server
         {
             using (new ServerFactory(new Tracer()).Create(App, 9090))
             {
-                Console.ReadLine();
+                Console.WriteLine("Enter exit to exit:");
+                for (; ; )
+                {
+                    var cmd = Console.ReadLine();
+                    switch (cmd)
+                    {
+                        case "gc":
+                            GC.Collect();
+                            break;
+                        case "exit":
+                            return;
+                    }
+                }
             }
         }
 

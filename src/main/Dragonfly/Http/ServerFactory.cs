@@ -45,7 +45,7 @@ namespace Dragonfly.Http
             
             WaitCallback connectionExecute = connection =>
             {
-                _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptAsync);
+                _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryConnectionExecute);
                 ((Connection)connection).Execute();
             };
 

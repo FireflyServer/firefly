@@ -14,31 +14,19 @@ namespace Dragonfly.Http
         private readonly IServerTrace _trace;
         private readonly AppDelegate _app;
         private readonly Socket _socket;
-        private unsafe NativeOverlapped* _recvOverlapped;
 
         private Baton _baton;
         private Frame _frame;
-        private int _receiveCount;
-        private SocketError _socketError;
 
         private Action<Exception> _fault;
         private Action _frameConsumeCallback;
+        private SocketAsyncEventArgs _socketReceiveAsyncEventArgs;
 
         public Connection(IServerTrace trace, AppDelegate app, Socket socket)
         {
             _trace = trace;
             _app = app;
             _socket = socket;
-            Init();
-        }
-
-        private unsafe void Init()
-        {
-            _recvOverlapped = new Overlapped { AsyncResult = this }.Pack(CompletionCallback, null);
-        }
-        private unsafe void Term()
-        {
-            Overlapped.Free(_recvOverlapped);
         }
 
         public enum Next
@@ -62,12 +50,14 @@ namespace Dragonfly.Http
                              Debug.WriteLine(ex.Message);
                          };
 
-            _frameConsumeCallback =
-                () =>
+            _socketReceiveAsyncEventArgs = new SocketAsyncEventArgs();
+            _socketReceiveAsyncEventArgs.SetBuffer(new byte[0], 0, 0);
+            _socketReceiveAsyncEventArgs.Completed +=
+                (_, __) =>
                 {
                     try
                     {
-                        Go(2);
+                        Go();
                     }
                     catch (Exception ex)
                     {
@@ -75,30 +65,22 @@ namespace Dragonfly.Http
                     }
                 };
 
-
-
+            _frameConsumeCallback =
+                () =>
+                {
+                    try
+                    {
+                        Go();
+                    }
+                    catch (Exception ex)
+                    {
+                        _fault(ex);
+                    }
+                };
             try
             {
                 _socket.Blocking = false;
-                //ThreadPool.BindHandle(_socket.Handle);
-                //Go(0);
-                _socket.BeginSend(
-                    new byte[0],
-                    0,
-                    0,
-                    SocketFlags.None,
-                    ar =>
-                    {
-                        try
-                        {
-                            _socket.EndSend(ar, out _socketError);
-                            Go(0);
-                        }
-                        catch (Exception ex)
-                        {
-                            _fault(ex);
-                        }
-                    }, null);
+                Go();
             }
             catch (Exception ex)
             {
@@ -107,147 +89,68 @@ namespace Dragonfly.Http
         }
 
 
-        public unsafe void Go(int marker)
+        public void Go()
         {
-            switch (marker)
+            for (; ; )
             {
-                case 0:
-                    goto marker0;
-                case 1:
-                    goto marker1;
-                case 2:
-                    goto marker2;
-                case 3:
-                    goto marker3;
+                if (_baton.Next == Next.NewFrame)
+                {
+                    _baton.Buffer = new ArraySegment<byte>(new byte[1024], 0, 0);
+                    _frame = new Frame(_app, ProduceData, ProduceEnd);
+                    _baton.Next = Next.ReadMore;
+                }
+
+                if (_baton.Next == Next.ReadMore)
+                {
+                    SocketError recvError;
+                    var buffer = _baton.Available(128);
+                    var receiveCount = _socket.Receive(
+                        buffer.Array,
+                        buffer.Offset,
+                        buffer.Count,
+                        SocketFlags.None,
+                        out recvError);
+
+                    if (recvError == SocketError.WouldBlock)
+                    {
+                        if (_socket.ReceiveAsync(_socketReceiveAsyncEventArgs))
+                            return;
+
+                        continue;
+                    }
+
+                    if (recvError != SocketError.Success || receiveCount == 0)
+                    {
+                        _baton.Complete = true;
+                    }
+                    else
+                    {
+                        _baton.Extend(receiveCount);
+                    }
+
+                    if (_frame.Consume(
+                        _baton,
+                        _frameConsumeCallback,
+                        _fault))
+                    {
+                        return;
+                    }
+                }
+
+                if (_baton.Next == Next.CloseConnection)
+                {
+                    _socketReceiveAsyncEventArgs.Dispose();
+                    _socketReceiveAsyncEventArgs = null;
+
+                    _socket.Shutdown(SocketShutdown.Receive);
+                    _socket.Close();
+                    // todo: method to decrement vitality, pairs with shutdown-to-send
+
+                    _trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+                    return;
+                }
             }
-        marker0:
-
-            if (_baton.Next == Next.NewFrame)
-            {
-                _baton.Buffer = new ArraySegment<byte>(new byte[1024], 0, 0);
-                _frame = new Frame(_app, ProduceData, ProduceEnd);
-                _baton.Next = Next.ReadMore;
-            }
-
-            if (_baton.Next == Next.CloseConnection)
-            {
-                //Term();
-                _socket.Shutdown(SocketShutdown.Receive);
-                // todo: method to decrement vitality, pairs with shutdown-to-send
-
-                _trace.Event(TraceEventType.Stop, TraceMessage.Connection);
-                return;
-            }
-
-        marker4:
-            uint numberOfBytesRecvd;
-            SocketFlags flags;
-            int recvResult;
-            SocketError recvError;
-            WSABUF wsabuf;
-            var buffer = _baton.Available(128);
-            fixed (byte* p = &buffer.Array[buffer.Offset])
-            {
-                wsabuf = new WSABUF
-                             {
-                                 buf = new IntPtr(p),
-                                 len = (uint)buffer.Count
-                             };
-                flags = SocketFlags.None;
-                numberOfBytesRecvd = 0;
-                recvResult = WSARecv(
-                    _socket.Handle,
-                    ref wsabuf,
-                    1,
-                    ref numberOfBytesRecvd,
-                    ref flags,
-                    null,
-                    IntPtr.Zero);
-
-                recvError = recvResult == -1 ? (SocketError)Marshal.GetLastWin32Error() : SocketError.Success;
-            }
-
-            if (recvError == SocketError.Success)
-            {
-                _receiveCount = (int)numberOfBytesRecvd;
-                goto marker1;
-            }
-            if (recvError != SocketError.WouldBlock)
-            {
-                _receiveCount = 0;
-                goto marker1;
-            }
-
-            wsabuf = new WSABUF { buf = IntPtr.Zero, len = 0 };
-            flags = SocketFlags.None;
-            numberOfBytesRecvd = 0;
-            recvResult = WSARecv(
-                _socket.Handle,
-                ref wsabuf,
-                1,
-                ref numberOfBytesRecvd,
-                ref flags,
-                _recvOverlapped,
-                IntPtr.Zero);
-            recvError = recvResult == -1 ? (SocketError)Marshal.GetLastWin32Error() : SocketError.Success;
-            if (recvError == SocketError.IOPending)
-                return;
-
-            _receiveCount = recvError == SocketError.Success ? (int)numberOfBytesRecvd : 0;
-        marker3:
-            if (_receiveCount == 0)
-                goto marker4;
-
-        marker1:
-            if (_receiveCount == 0)
-            {
-                _baton.Complete = true;
-            }
-            else
-            {
-                _baton.Extend(_receiveCount);
-            }
-
-            if (_frame.Consume(
-                _baton,
-                _frameConsumeCallback,
-                _fault))
-            {
-                return;
-            }
-
-        marker2:
-            goto marker0;
         }
-
-
-        private static readonly unsafe IOCompletionCallback CompletionCallback = CompletionCallbackMethod;
-
-
-        private static unsafe void CompletionCallbackMethod(uint errorcode, uint numbytes, NativeOverlapped* poverlap)
-        {
-            var overlapped = Overlapped.Unpack(poverlap);
-            var self = (Connection)overlapped.AsyncResult;
-            self._receiveCount = (int)numbytes;
-            self.Go(3);
-        }
-
-        public struct WSABUF
-        {
-            public UInt32 len;
-            public IntPtr buf;
-        }
-
-        [DllImport("ws2_32.dll", SetLastError = true)]
-        public extern static unsafe int WSARecv(
-            IntPtr s,
-            ref WSABUF lpBuffers,
-            UInt32 dwBufferCount,
-            ref UInt32 lpNumberOfBytesRecvd,
-            ref SocketFlags lpFlags,
-            NativeOverlapped* lpOverlapped,
-            IntPtr lpCompletionRoutine);
-
 
         struct SendInfo
         {
@@ -353,13 +256,22 @@ namespace Dragonfly.Http
         private SendInfo DoSend(ArraySegment<byte> data, Action<SendInfo> callback)
         {
             var e = new SocketAsyncEventArgs();
-            e.Completed += (_, __) => callback(new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError });
+            e.Completed +=
+                (_, __) =>
+                {
+                    e.Dispose();
+                    callback(new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError });
+                };
             e.SetBuffer(data.Array, data.Offset, data.Count);
             var delayed = _socket.SendAsync(e);
 
-            return delayed
-                ? new SendInfo { SocketError = SocketError.IOPending }
-                : new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError };
+            if (delayed)
+            {
+                return new SendInfo { SocketError = SocketError.IOPending };
+            }
+
+            e.Dispose();
+            return new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError };
         }
 
         private void ProduceEnd()
