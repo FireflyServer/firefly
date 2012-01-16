@@ -22,7 +22,6 @@ namespace Dragonfly.Http
         private SocketError _socketError;
 
         private Action<Exception> _fault;
-        private AsyncCallback _beginReceiveCallback;
         private Action _frameConsumeCallback;
 
         public Connection(IServerTrace trace, AppDelegate app, Socket socket)
@@ -36,6 +35,10 @@ namespace Dragonfly.Http
         private unsafe void Init()
         {
             _recvOverlapped = new Overlapped { AsyncResult = this }.Pack(CompletionCallback, null);
+        }
+        private unsafe void Term()
+        {
+            Overlapped.Free(_recvOverlapped);
         }
 
         public enum Next
@@ -58,21 +61,6 @@ namespace Dragonfly.Http
                          {
                              Debug.WriteLine(ex.Message);
                          };
-
-            _beginReceiveCallback =
-                sr =>
-                {
-                    try
-                    {
-                        if (sr.CompletedSynchronously) return;
-                        _receiveCount = _socket.EndReceive(sr, out _socketError);
-                        Go(1);
-                    }
-                    catch (Exception ex)
-                    {
-                        _fault(ex);
-                    }
-                };
 
             _frameConsumeCallback =
                 () =>
@@ -143,6 +131,7 @@ namespace Dragonfly.Http
 
             if (_baton.Next == Next.CloseConnection)
             {
+                //Term();
                 _socket.Shutdown(SocketShutdown.Receive);
                 // todo: method to decrement vitality, pairs with shutdown-to-send
 

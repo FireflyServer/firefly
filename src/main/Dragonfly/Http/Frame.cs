@@ -36,7 +36,11 @@ namespace Dragonfly.Http
         {
             _app = app;
             _produceData = produceData;
-            _produceEnd = produceEnd;
+            _produceEnd = () => 
+            { 
+                produceEnd();
+                _messageBody.Drain();
+            };
         }
 
         public bool Consume(Baton baton, Action callback, Action<Exception> fault)

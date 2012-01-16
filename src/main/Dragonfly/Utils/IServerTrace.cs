@@ -10,14 +10,18 @@ namespace Dragonfly.Utils
         Connection,
 
         // TraceEventType.Verbose
-        ServerFactoryEndAccept,
-        ServerFactoryBeginAccept,
+        ServerFactoryAcceptAsync,
+        ServerFactoryAcceptCompletedAsync,
+        ServerFactoryAcceptCompletedSync,
 
         // TraceEventType.Information
         ServerFactoryConnectionExecute,
 
         // TraceEventType.Warning
         ConnectionSendSocketError,
+
+        // TraceEventType.Error
+        ServerFactoryAcceptSocketError
     };
 
     public interface IServerTrace

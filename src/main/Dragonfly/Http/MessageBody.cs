@@ -100,6 +100,17 @@ namespace Dragonfly.Http
             return new ForRemainingData();
         }
 
+        public void Drain()
+        {
+            if (_activeSubscriber == _earlySubscriber)
+            {
+                Subscribe(
+                    (data, continuation) => false,
+                    ex => { },
+                    () => { });
+            }
+        }
+
         public Action Subscribe(Func<ArraySegment<byte>, Action, bool> next, Action<Exception> error, Action complete)
         {
             var subscriber = new Subscriber(next, error, complete);
@@ -389,5 +400,6 @@ namespace Dragonfly.Http
                 return false;
             }
         }
+
     }
 }

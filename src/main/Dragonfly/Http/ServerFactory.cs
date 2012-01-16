@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using Dragonfly.Utils;
 using Gate.Owin;
 
@@ -41,33 +42,61 @@ namespace Dragonfly.Http
             var listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
             listenSocket.Bind(endpoint);
             listenSocket.Listen(-1);
+            
+            WaitCallback connectionExecute = connection =>
+            {
+                _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptAsync);
+                ((Connection)connection).Execute();
+            };
 
-            var beginAccept = Noop;
-            beginAccept =
+            var stop = false;
+            var args = new SocketAsyncEventArgs();
+            Action accept =
                 () =>
                 {
-                    _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryBeginAccept);
-                    listenSocket.BeginAccept(
-                        iar =>
+                    while (!stop)
+                    {
+                        _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptAsync);
+
+                        if (listenSocket.AcceptAsync(args))
+                            return;
+
+                        _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedSync);
+
+                        if (args.SocketError != SocketError.Success)
                         {
-                            _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryEndAccept);
-                            var connectionSocket = listenSocket.EndAccept(iar);
-                            beginAccept.Invoke();
+                            _trace.Event(TraceEventType.Error, TraceMessage.ServerFactoryAcceptSocketError);
+                        }
 
-                            var connection = new Connection(_trace, app, connectionSocket);
-                            _trace.Event(TraceEventType.Information, TraceMessage.ServerFactoryConnectionExecute);
-                            connection.Execute();
-                        }, null);
+                        if (args.SocketError == SocketError.Success &&
+                            args.AcceptSocket != null)
+                        {
+                            ThreadPool.QueueUserWorkItem(connectionExecute, new Connection(_trace, app, args.AcceptSocket));
+                        }
+                        args.AcceptSocket = null;
+                    }
                 };
+            args.Completed +=
+                (_, __) =>
+                {
+                    _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedAsync);
 
-            beginAccept.Invoke();
+                    if (args.SocketError == SocketError.Success &&
+                        args.AcceptSocket != null)
+                    {
+                        ThreadPool.QueueUserWorkItem(connectionExecute, new Connection(_trace, app, args.AcceptSocket));
+                    }
+                    args.AcceptSocket = null;
+                    accept();
+                };
+            accept();
 
             return new Disposable(
                 () =>
                 {
                     _trace.Event(TraceEventType.Stop, TraceMessage.ServerFactory);
 
-                    beginAccept = Noop;
+                    stop = true;
                     listenSocket.Close();
                 });
         }
