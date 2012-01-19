@@ -4,7 +4,7 @@ namespace Dragonfly.Tests.Http
 {
     public class ConnectionTests : ConnectionTestsBase
     {
-        [Fact]
+        [Fact(Skip = "Connection class isn't testable yet")]
         public void ConnectionClassCanBeTested()
         {
             Connection.Execute();
@@ -14,7 +14,7 @@ namespace Dragonfly.Tests.Http
             Socket.Add("Host: localhost\r\n");
             Socket.Add("Connection: close\r\n");
             Socket.Add("\r\n");
-
+            DisconnectedEvent.WaitOne();
             Assert.Equal("HTTP/1.1 200 OK\r\n\r\n", Socket.Output);
         }
     }
