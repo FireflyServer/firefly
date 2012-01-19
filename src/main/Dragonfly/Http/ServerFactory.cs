@@ -42,7 +42,7 @@ namespace Dragonfly.Http
             var listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
             listenSocket.Bind(endpoint);
             listenSocket.Listen(-1);
-            
+
             WaitCallback connectionExecute = connection =>
             {
                 _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryConnectionExecute);
@@ -71,7 +71,13 @@ namespace Dragonfly.Http
                         if (acceptEvent.SocketError == SocketError.Success &&
                             acceptEvent.AcceptSocket != null)
                         {
-                            ThreadPool.QueueUserWorkItem(connectionExecute, new Connection(_trace, app, acceptEvent.AcceptSocket));
+                            ThreadPool.QueueUserWorkItem(
+                                connectionExecute,
+                                new Connection(
+                                    _trace, 
+                                    app, 
+                                    new SocketWrapper(acceptEvent.AcceptSocket), 
+                                    OnDisconnect));
                         }
                         acceptEvent.AcceptSocket = null;
                     }
@@ -84,7 +90,13 @@ namespace Dragonfly.Http
                     if (acceptEvent.SocketError == SocketError.Success &&
                         acceptEvent.AcceptSocket != null)
                     {
-                        ThreadPool.QueueUserWorkItem(connectionExecute, new Connection(_trace, app, acceptEvent.AcceptSocket));
+                        ThreadPool.QueueUserWorkItem(
+                            connectionExecute, 
+                            new Connection(
+                                _trace, 
+                                app, 
+                                new SocketWrapper(acceptEvent.AcceptSocket), 
+                                OnDisconnect));
                     }
                     acceptEvent.AcceptSocket = null;
                     accept();
@@ -100,6 +112,11 @@ namespace Dragonfly.Http
                     listenSocket.Close();
                     acceptEvent.Dispose();
                 });
+        }
+
+        private static void OnDisconnect(ISocket obj)
+        {
+            obj.Close();
         }
     }
 }

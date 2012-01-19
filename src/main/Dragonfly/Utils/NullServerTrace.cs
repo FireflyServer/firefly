@@ -2,7 +2,7 @@
 
 namespace Dragonfly.Utils
 {
-    public class NullServerTrace : IServerTrace
+    class NullServerTrace : IServerTrace
     {
         public static readonly IServerTrace Instance = new NullServerTrace();
 

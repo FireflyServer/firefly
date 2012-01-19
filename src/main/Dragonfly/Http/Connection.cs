@@ -13,7 +13,8 @@ namespace Dragonfly.Http
     {
         private readonly IServerTrace _trace;
         private readonly AppDelegate _app;
-        private readonly Socket _socket;
+        private readonly ISocket _socket;
+        private readonly Action<ISocket> _disconnected;
 
         private Baton _baton;
         private Frame _frame;
@@ -22,11 +23,12 @@ namespace Dragonfly.Http
         private Action _frameConsumeCallback;
         private SocketAsyncEventArgs _socketReceiveAsyncEventArgs;
 
-        public Connection(IServerTrace trace, AppDelegate app, Socket socket)
+        public Connection(IServerTrace trace, AppDelegate app, ISocket socket, Action<ISocket> disconnected)
         {
             _trace = trace;
             _app = app;
             _socket = socket;
+            _disconnected = disconnected;
         }
 
         public enum Next
@@ -139,14 +141,26 @@ namespace Dragonfly.Http
 
                 if (_baton.Next == Next.CloseConnection)
                 {
+                    _trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+
                     _socketReceiveAsyncEventArgs.Dispose();
                     _socketReceiveAsyncEventArgs = null;
-
                     _socket.Shutdown(SocketShutdown.Receive);
-                    _socket.Close();
-                    // todo: method to decrement vitality, pairs with shutdown-to-send
 
-                    _trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+                    var e = new SocketAsyncEventArgs();
+                    Action cleanup =
+                        () =>
+                        {
+                            e.Dispose();
+                            _disconnected(_socket);
+                        };
+
+                    e.Completed += (_, __) => cleanup();
+                    if (!_socket.DisconnectAsync(e))
+                    {
+                        cleanup();
+                    }
+
                     return;
                 }
             }
@@ -193,7 +207,8 @@ namespace Dragonfly.Http
                     remaining.Count - sent);
 
                 // BLOCK - enters a wait state for sync output waiting for kernel buffer to be writable
-                Socket.Select(null, new List<Socket> { _socket }, null, -1);
+                //Socket.Select(null, new List<Socket> { _socket }, null, -1);
+                _socket.WaitToSend();
             }
         }
 

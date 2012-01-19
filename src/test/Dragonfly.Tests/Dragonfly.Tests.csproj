@@ -53,7 +53,11 @@
     <Compile Include="Fakes\FakeInput.cs" />
     <Compile Include="Fakes\FakeOutput.cs" />
     <Compile Include="Fakes\FakeRequestBody.cs" />
+    <Compile Include="Fakes\FakeSocket.cs" />
+    <Compile Include="Fakes\FakeTrace.cs" />
     <Compile Include="Http\BatonTests.cs" />
+    <Compile Include="Http\ConnectionTests.cs" />
+    <Compile Include="Http\ConnectionTestsBase.cs" />
     <Compile Include="Http\FrameBodyChunkedTests.cs" />
     <Compile Include="Http\FrameRequestHeaderTests.cs" />
     <Compile Include="Http\FrameTests.cs" />

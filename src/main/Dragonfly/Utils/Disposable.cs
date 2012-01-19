@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Dragonfly.Utils
 {
-    public class Disposable : IDisposable
+    class Disposable : IDisposable
     {
         private Action _dispose;
 
