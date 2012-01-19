@@ -50,7 +50,7 @@ namespace Dragonfly.Http
             };
 
             var stop = false;
-            var args = new SocketAsyncEventArgs();
+            var acceptEvent = new SocketAsyncEventArgs();
             Action accept =
                 () =>
                 {
@@ -58,35 +58,35 @@ namespace Dragonfly.Http
                     {
                         _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptAsync);
 
-                        if (listenSocket.AcceptAsync(args))
+                        if (listenSocket.AcceptAsync(acceptEvent))
                             return;
 
                         _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedSync);
 
-                        if (args.SocketError != SocketError.Success)
+                        if (acceptEvent.SocketError != SocketError.Success)
                         {
                             _trace.Event(TraceEventType.Error, TraceMessage.ServerFactoryAcceptSocketError);
                         }
 
-                        if (args.SocketError == SocketError.Success &&
-                            args.AcceptSocket != null)
+                        if (acceptEvent.SocketError == SocketError.Success &&
+                            acceptEvent.AcceptSocket != null)
                         {
-                            ThreadPool.QueueUserWorkItem(connectionExecute, new Connection(_trace, app, args.AcceptSocket));
+                            ThreadPool.QueueUserWorkItem(connectionExecute, new Connection(_trace, app, acceptEvent.AcceptSocket));
                         }
-                        args.AcceptSocket = null;
+                        acceptEvent.AcceptSocket = null;
                     }
                 };
-            args.Completed +=
+            acceptEvent.Completed +=
                 (_, __) =>
                 {
                     _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedAsync);
 
-                    if (args.SocketError == SocketError.Success &&
-                        args.AcceptSocket != null)
+                    if (acceptEvent.SocketError == SocketError.Success &&
+                        acceptEvent.AcceptSocket != null)
                     {
-                        ThreadPool.QueueUserWorkItem(connectionExecute, new Connection(_trace, app, args.AcceptSocket));
+                        ThreadPool.QueueUserWorkItem(connectionExecute, new Connection(_trace, app, acceptEvent.AcceptSocket));
                     }
-                    args.AcceptSocket = null;
+                    acceptEvent.AcceptSocket = null;
                     accept();
                 };
             accept();
@@ -98,6 +98,7 @@ namespace Dragonfly.Http
 
                     stop = true;
                     listenSocket.Close();
+                    acceptEvent.Dispose();
                 });
         }
     }
