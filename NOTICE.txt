@@ -1,0 +1,43 @@
+Dragonfly HTTP Server
+Copyright 2011 Louis DeJardin
+
+This software was developed by 
+Louis DeJardin (http://whereslou.com/).
+
+I. Included Third-Party Software
+
+This product includes Gate software developed at 
+the .NET HTTP Abstractions group 
+(http://groups.google.com/group/net-http-abstractions).
+Copyright 2011-2012 .NET HTTP Abstractions group
+Licensed under Apache License 2.0
+
+II. Used Third-Party Software
+
+This product uses NuGet software developed at 
+ASP.NET Open Source Gallery at Outercurve Foundation 
+(http://nuget.codeplex.com/)
+Copyright 2010-2012 Outercurve Foundation
+Licensed under Apache License 2.0
+
+This product uses xUnit software developed at 
+Microsoft 
+(http://xunit.codeplex.com/)
+Copyright 2007-2012 Microsoft
+Licensed under Microsoft Public License (Ms-PL)
+
+This product uses NancyFx software developed at 
+NancyFx Custodians of the Super-Duper-Happy-Path 
+(http://www.nancyfx.org/)
+Copyright 2010-2012 Andreas Håkansson, Steven Robbins and contributors
+Licensed under The MIT License
+
+III. Overall License Summary
+
+Redistribution
+- Apache License 2.0
+
+Uses
+- Apache License 2.0
+- Microsoft Public License (Ms-PL)
+- The MIT License
