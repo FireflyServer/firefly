@@ -1,0 +1,26 @@
+﻿Content-Length: 8
+Content-Type: text/html
+
+Proxy-Connection: Keep-Alive
+Connection: Keep-Alive
+Transfer-Encoding: chunked
+Via: 1.1 TK5-PRXY-21
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Date: Mon, 16 Jan 2012 23:39:47 GMT
+Content-Type: text/html; charset=UTF-8
+Server: nginx/0.6.30
+X-Powered-By: PHP/5.2.4-2ubuntu5.6
+Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Pragma: no-cache
+X-Pingback: http://whereslou.com/xmlrpc.php
+
+Host: whereslou.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:8.0) Gecko/20100101 Firefox/8.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
+Connection: keep-alive
+Cookie: PHPSESSID=a3047ee50d8ba3f4302a9926aasdf; wordpress_test_cookie=WP+Cookie+check; wp-settings-1=editor%3Dhtml%26m0%3Do%26m1%3Do%26m2%3Dc%26m3%3Dc%26m4%3Dc%26m5%3Do%26m6%3Do%26m7%3Do%26m8%3Dc%26m9%3Dc%26m10%3Dc%26imgsize%3Dmedium%26urlbutton%3Durlfile%26align%3Dright; wp-settings-time-1=1326754593; __utma=24333308.2009914498.1326754717.1326754717.1326754717.1; __utmc=24333308; __utmz=24333308.1326754717.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)
+Cache-Control: max-age=0
+
