@@ -42,7 +42,7 @@
     <Compile Include="Workaround.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Dragonfly\Dragonfly.csproj">
+    <ProjectReference Include="..\..\main\Dragonfly\Dragonfly.csproj">
       <Project>{CA805DDB-E41D-42A0-AF7E-2388E2670663}</Project>
       <Name>Dragonfly</Name>
     </ProjectReference>
