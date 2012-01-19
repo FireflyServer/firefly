@@ -1,4 +1,5 @@
-﻿using Dragonfly.Http;
+﻿using System.Linq;
+using Dragonfly.Http;
 using Xunit;
 
 namespace Dragonfly.Tests.Http
@@ -73,15 +74,15 @@ namespace Dragonfly.Tests.Http
             AssertInputState(false, Connection.Next.NewFrame, "");
             AssertOutputState(true);
 
-            Assert.Equal("alpha beta", App.RequestHeaders["x-1"]);
-            Assert.Equal("alpha beta", App.RequestHeaders["x-2"]);
-            Assert.Equal("alpha beta", App.RequestHeaders["x-3"]);
-            Assert.Equal("alpha beta", App.RequestHeaders["x-4"]);
-            Assert.Equal("alpha\tbeta", App.RequestHeaders["x-5"]);
+            Assert.Equal("alpha beta", App.RequestHeader("x-1"));
+            Assert.Equal("alpha beta", App.RequestHeader("x-2"));
+            Assert.Equal("alpha beta", App.RequestHeader("x-3"));
+            Assert.Equal("alpha beta", App.RequestHeader("x-4"));
+            Assert.Equal("alpha\tbeta", App.RequestHeader("x-5"));
         }
 
         [Fact]
-        public void MultipleHeadersAreCrlfDelimitedWithOrderPreserved()
+        public void MultipleHeadersAreEnumerableWithOrderPreserved()
         {
             App.OptionReadRequestBody = true;
 
@@ -99,8 +100,13 @@ namespace Dragonfly.Tests.Http
             AssertInputState(false, Connection.Next.NewFrame, "");
             AssertOutputState(true);
 
-            Assert.Equal("alpha beta1\r\nalpha beta2\r\nalpha beta3\r\nalpha beta4\r\nalpha\tbeta5", App.RequestHeaders["x-1"]);
-            Assert.Equal("foo1\r\nfoo2", App.RequestHeaders["x-2"]);
+            var x1 = App.RequestHeaders["x-1"].ToArray();
+            Assert.Equal(5, x1.Length);
+            Assert.Equal("alpha beta1*alpha beta2*alpha beta3*alpha beta4*alpha\tbeta5", string.Join("*",x1));
+
+            var x2 = App.RequestHeaders["x-2"].ToArray();
+            Assert.Equal(2, x2.Length);
+            Assert.Equal("foo1*foo2", string.Join("*", x2));
         }
 
         [Fact]
@@ -119,7 +125,9 @@ namespace Dragonfly.Tests.Http
             AssertInputState(false, Connection.Next.NewFrame, "");
             AssertOutputState(true);
 
-            Assert.Equal("alpha beta1\r\nalpha \tbeta2\r\nalpha  beta3\r\nalpha beta4", App.RequestHeaders["x-1"]);
+            var x1 = App.RequestHeaders["x-1"].ToArray();
+            Assert.Equal(4, x1.Length);
+            Assert.Equal("alpha beta1*alpha \tbeta2*alpha  beta3*alpha beta4", string.Join("*", x1));
         }
 
     }

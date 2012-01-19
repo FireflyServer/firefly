@@ -49,6 +49,27 @@ namespace Dragonfly.Tests.Fakes
         }
 
 
-
+        public string RequestHeader(string name)
+        {
+            IEnumerable<string> values;
+            if (!RequestHeaders.TryGetValue(name, out values)
+                || values == null
+                || !values.Any())
+            {
+                return null;
+            }
+            return string.Join(",", values.ToArray());
+        }
+        public string ResponseHeader(string name)
+        {
+            IEnumerable<string> values;
+            if (!ResponseHeaders.TryGetValue(name, out values)
+                || values == null
+                || !values.Any())
+            {
+                return null;
+            }
+            return string.Join(",", values.ToArray());
+        }
     }
 }

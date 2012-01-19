@@ -28,7 +28,7 @@ Host:localhost
 
 
             AssertOutputState(true, "200 Super", "x-header: value", "This is the response");
-            Assert.Equal("localhost", App.RequestHeaders["Host"]);
+            Assert.Equal("localhost", App.RequestHeader("Host"));
         }
 
 
@@ -46,9 +46,9 @@ Host:localhost
             Assert.Equal("", App.Env["owin.RequestPathBase"]);
             Assert.Equal("/hello/world", App.Env["owin.RequestPath"]);
             Assert.Equal("x=y", App.Env["owin.RequestQueryString"]);
-            Assert.Equal("london", App.RequestHeaders["Host"]);
-            Assert.Equal("bar", App.RequestHeaders["foo"]);
-            Assert.Equal("quad", App.RequestHeaders["frap"]);
+            Assert.Equal("london", App.RequestHeader("Host"));
+            Assert.Equal("bar", App.RequestHeader("foo"));
+            Assert.Equal("quad", App.RequestHeader("frap"));
         }
 
         [Fact]

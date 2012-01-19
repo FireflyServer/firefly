@@ -55,8 +55,8 @@
     <Compile Include="Fakes\FakeRequestBody.cs" />
     <Compile Include="Http\BatonTests.cs" />
     <Compile Include="Http\FrameBodyChunkedTests.cs" />
-    <None Include="Http\FrameRequestHeaderTests.cs" />
-    <None Include="Http\FrameTests.cs" />
+    <Compile Include="Http\FrameRequestHeaderTests.cs" />
+    <Compile Include="Http\FrameTests.cs" />
     <Compile Include="Http\FrameTestsBase.cs" />
     <Compile Include="Http\MessageBodyTests.cs" />
     <Compile Include="Http\ServerTests.cs" />
