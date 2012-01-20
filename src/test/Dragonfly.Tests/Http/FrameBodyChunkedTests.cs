@@ -17,7 +17,7 @@ namespace Dragonfly.Tests.Http
 Transfer-Encoding: chunked
 
 ");
-            AssertInputState(false, Connection.Next.ReadMore, "");
+            AssertInputState(false, false, "");
         }
 
         [Fact]
@@ -29,7 +29,7 @@ Transfer-Encoding: chunked
 Transfer-Encoding: chunked
 
 a");
-            AssertInputState(false, Connection.Next.ReadMore, "a");
+            AssertInputState(false, false, "a");
             Assert.Equal("", App.RequestBody.Text);
             Assert.False(App.RequestBody.Ended);
         }
@@ -44,7 +44,7 @@ Transfer-Encoding: chunked
 
 a
 ");
-            AssertInputState(false, Connection.Next.ReadMore, "");
+            AssertInputState(false, false, "");
         }
 
         [Fact]
@@ -57,7 +57,7 @@ Transfer-Encoding: chunked
 
 a;foo=bar
 ");
-            AssertInputState(false, Connection.Next.ReadMore, "");
+            AssertInputState(false, false, "");
         }
 
         [Fact]
@@ -70,7 +70,7 @@ Transfer-Encoding: chunked
 
 a;foo=bar
 12345");
-            AssertInputState(false, Connection.Next.ReadMore, "");
+            AssertInputState(false, false, "");
             Assert.False(App.RequestBody.Ended);
             Assert.Equal("12345", App.RequestBody.Text);
         }
@@ -86,7 +86,7 @@ Transfer-Encoding: chunked
 a;foo=bar
 1234567890
 ");
-            AssertInputState(false, Connection.Next.ReadMore, "");
+            AssertInputState(false, false, "");
             Assert.False(App.RequestBody.Ended);
             Assert.Equal("1234567890", App.RequestBody.Text);
         }
@@ -103,7 +103,7 @@ a;foo=bar
 1234567890
 10
 1234567890");
-            AssertInputState(false, Connection.Next.ReadMore, "");
+            AssertInputState(false, false, "");
             Assert.False(App.RequestBody.Ended);
             Assert.Equal("12345678901234567890", App.RequestBody.Text);
         }
@@ -121,7 +121,7 @@ a;foo=bar
 10
 1234567890qwerty
 ");
-            AssertInputState(false, Connection.Next.ReadMore, "");
+            AssertInputState(false, false, "");
             Assert.False(App.RequestBody.Ended);
             Assert.Equal("12345678901234567890qwerty", App.RequestBody.Text);
         }
@@ -140,7 +140,7 @@ a;foo=bar
 1234567890qwerty
 0
 ");
-            AssertInputState(false, Connection.Next.NewFrame, "");
+            AssertInputState(false, true, "");
             Assert.True(App.RequestBody.Ended);
             Assert.Equal("12345678901234567890qwerty", App.RequestBody.Text);
         }
@@ -159,7 +159,7 @@ a;foo=bar
 1234567890qwerty
 0
 ");
-            AssertInputState(false, Connection.Next.NewFrame, "");
+            AssertInputState(false, true, "");
             Assert.True(App.RequestBody.Ended);
             Assert.Equal("12345678901234567890qwerty", App.RequestBody.Text);
         }
@@ -179,7 +179,7 @@ a;foo=bar
 1234567890qwerty
 0
 GET / ");
-            AssertInputState(false, Connection.Next.NewFrame, "GET / ");
+            AssertInputState(false, true, "GET / ");
             Assert.True(App.RequestBody.Ended);
             Assert.Equal("12345678901234567890qwerty", App.RequestBody.Text);
         }

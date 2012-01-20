@@ -20,10 +20,10 @@ namespace Dragonfly.Tests.Http
             Input.Consume = Frame.Consume;
         }
 
-        protected void AssertInputState(bool paused, Connection.Next next, string text)
+        protected void AssertInputState(bool paused, bool localIntakeFin, string text)
         {
             Assert.Equal(paused, Input.Paused);
-            Assert.Equal(next, Input.Baton.Next);
+            Assert.Equal(localIntakeFin, Frame.LocalIntakeFin);
             Assert.Equal(text, Input.Text);
         }
 

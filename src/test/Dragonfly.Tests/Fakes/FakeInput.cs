@@ -16,7 +16,6 @@ namespace Dragonfly.Tests.Fakes
             Baton = new Baton
                         {
                             Buffer = new ArraySegment<byte>(new byte[1024], 0, 0),
-                            Next = Connection.Next.ReadMore
                         };
             WaitHandle = new ManualResetEvent(false);
             Encoding = Encoding.UTF8;
@@ -57,7 +56,7 @@ namespace Dragonfly.Tests.Fakes
             if (Paused)
                 throw new InvalidOperationException("FakeInput.End cannot be called when End is true");
 
-            Baton.Complete = true;
+            Baton.RemoteIntakeFin = true;
             CallConsume();
         }
 

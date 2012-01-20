@@ -6,8 +6,7 @@ namespace Dragonfly.Http
     public class Baton
     {
         public ArraySegment<byte> Buffer { get; set; }
-        public bool Complete { get; set; }
-        public Connection.Next Next { get; set; }
+        public bool RemoteIntakeFin { get; set; }
 
 
         public void Skip(int count)

@@ -37,7 +37,7 @@ Host:localhost
         {
             Input.Add("GET /hello/world?x=y HTTP/1.1\r\nHost: london\r\nfoo: bar\r\nfrap: quad\r\n\r\n");
             Input.End();
-            AssertInputState(false, Connection.Next.NewFrame, "");
+            AssertInputState(false, true, "");
             AssertOutputState(true);
             Assert.Equal(1, App.CallCount);
 
@@ -77,7 +77,7 @@ Content-Length: 5
 
 12345");
 
-            AssertInputState(false, Connection.Next.NewFrame, "");
+            AssertInputState(false, true, "");
             AssertOutputState(true);
 
             Assert.Equal(1, App.RequestBody.SubscribeCount);
@@ -97,7 +97,7 @@ Content-Length: 5
 
 1234567890");
 
-            AssertInputState(false, Connection.Next.NewFrame, "67890");
+            AssertInputState(false, true, "67890");
             AssertOutputState(true);
 
             Assert.Equal(1, App.RequestBody.SubscribeCount);
@@ -117,7 +117,7 @@ Content-Length: 10
 
 12345");
 
-            AssertInputState(false, Connection.Next.ReadMore, "");
+            AssertInputState(false, false, "");
             AssertOutputState(false, 0);
 
             Assert.Equal(1, App.RequestBody.SubscribeCount);

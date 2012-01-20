@@ -12,8 +12,7 @@ namespace Dragonfly.Http
         private Action _continuation;
         private bool _cancel;
 
-
-        public Action<bool> SubscribeCalled = hasEarlyData => { };
+        public bool LocalIntakeFin { get; set; }
 
         class Subscriber
         {
@@ -116,8 +115,6 @@ namespace Dragonfly.Http
                 return () => { };
             }
 
-            SubscribeCalled(false);
-
             var continuation = Interlocked.Exchange(ref _continuation, null);
             if (continuation != null)
                 continuation.Invoke();
@@ -136,10 +133,10 @@ namespace Dragonfly.Http
 
             public override bool Consume(Baton baton, Action callback, Action<Exception> fault)
             {
-                if (baton.Complete)
+                if (baton.RemoteIntakeFin)
                 {
+                    LocalIntakeFin = true;
                     _subscriber.Complete();
-                    baton.Next = Connection.Next.CloseConnection;
                     return false;
                 }
 
@@ -175,7 +172,7 @@ namespace Dragonfly.Http
                     return _subscriber.Next(consumed, callback);
                 }
 
-                baton.Next = _keepAlive ? Connection.Next.NewFrame : Connection.Next.CloseConnection;
+                LocalIntakeFin = true;
 
                 if (consumed.Count != 0)
                 {
@@ -240,7 +237,7 @@ namespace Dragonfly.Http
                             if (chunkSize == 0)
                             {
                                 _mode = Mode.Complete;
-                                baton.Next = _keepAlive ? Connection.Next.NewFrame : Connection.Next.CloseConnection;
+                                LocalIntakeFin = true;
                                 _subscriber.Complete();
                                 return false;
                             }

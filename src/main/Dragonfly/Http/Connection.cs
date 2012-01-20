@@ -31,22 +31,17 @@ namespace Dragonfly.Http
             _disconnected = disconnected;
         }
 
-        public enum Next
-        {
-            ReadMore,
-            NewFrame,
-            CloseConnection,
-        };
-
         public void Execute()
         {
             _trace.Event(TraceEventType.Start, TraceMessage.Connection);
 
             _baton = new Baton
                          {
-                             Buffer = new ArraySegment<byte>(new byte[1024], 0, 0),
-                             Next = Next.NewFrame,
+                             Buffer = new ArraySegment<byte>(new byte[1024], 0, 0)
                          };
+
+            NewFrame();
+            
             _fault = ex =>
                          {
                              Debug.WriteLine(ex.Message);
@@ -90,77 +85,47 @@ namespace Dragonfly.Http
             }
         }
 
+        private void NewFrame()
+        {
+            _frame = new Frame(_app, ProduceData, ProduceEnd);
+        }
+
 
         public void Go()
         {
-            for (; ; )
+            while (_frame.LocalIntakeFin == false)
             {
-                if (_baton.Next == Next.NewFrame)
+                SocketError recvError;
+                var buffer = _baton.Available(128);
+                var receiveCount = _socket.Receive(
+                    buffer.Array,
+                    buffer.Offset,
+                    buffer.Count,
+                    SocketFlags.None,
+                    out recvError);
+
+                if (recvError == SocketError.WouldBlock)
                 {
-                    _baton.Buffer = new ArraySegment<byte>(new byte[1024], 0, 0);
-                    _frame = new Frame(_app, ProduceData, ProduceEnd);
-                    _baton.Next = Next.ReadMore;
-                }
-
-                if (_baton.Next == Next.ReadMore)
-                {
-                    SocketError recvError;
-                    var buffer = _baton.Available(128);
-                    var receiveCount = _socket.Receive(
-                        buffer.Array,
-                        buffer.Offset,
-                        buffer.Count,
-                        SocketFlags.None,
-                        out recvError);
-
-                    if (recvError == SocketError.WouldBlock)
-                    {
-                        if (_socket.ReceiveAsync(_socketReceiveAsyncEventArgs))
-                            return;
-
-                        continue;
-                    }
-
-                    if (recvError != SocketError.Success || receiveCount == 0)
-                    {
-                        _baton.Complete = true;
-                    }
-                    else
-                    {
-                        _baton.Extend(receiveCount);
-                    }
-
-                    if (_frame.Consume(
-                        _baton,
-                        _frameConsumeCallback,
-                        _fault))
-                    {
+                    if (_socket.ReceiveAsync(_socketReceiveAsyncEventArgs))
                         return;
-                    }
+
+                    continue;
                 }
 
-                if (_baton.Next == Next.CloseConnection)
+                if (recvError != SocketError.Success || receiveCount == 0)
                 {
-                    _trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+                    _baton.RemoteIntakeFin = true;
+                }
+                else
+                {
+                    _baton.Extend(receiveCount);
+                }
 
-                    _socketReceiveAsyncEventArgs.Dispose();
-                    _socketReceiveAsyncEventArgs = null;
-                    _socket.Shutdown(SocketShutdown.Receive);
-
-                    var e = new SocketAsyncEventArgs();
-                    Action cleanup =
-                        () =>
-                        {
-                            e.Dispose();
-                            _disconnected(_socket);
-                        };
-
-                    e.Completed += (_, __) => cleanup();
-                    if (!_socket.DisconnectAsync(e))
-                    {
-                        cleanup();
-                    }
-
+                if (_frame.Consume(
+                    _baton,
+                    _frameConsumeCallback,
+                    _fault))
+                {
                     return;
                 }
             }
@@ -292,9 +257,28 @@ namespace Dragonfly.Http
         private void ProduceEnd()
         {
             //TODO keep-alive
-            if (_socket.Connected)
+            //if (_socket.Connected)
+            //{
+            //    _socket.Shutdown(SocketShutdown.Send);
+            //}
+            _trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+
+            _socketReceiveAsyncEventArgs.Dispose();
+            _socketReceiveAsyncEventArgs = null;
+            _socket.Shutdown(SocketShutdown.Receive);
+
+            var e = new SocketAsyncEventArgs();
+            Action cleanup =
+                () =>
+                {
+                    e.Dispose();
+                    _disconnected(_socket);
+                };
+
+            e.Completed += (_, __) => cleanup();
+            if (!_socket.DisconnectAsync(e))
             {
-                _socket.Shutdown(SocketShutdown.Send);
+                cleanup();
             }
         }
 

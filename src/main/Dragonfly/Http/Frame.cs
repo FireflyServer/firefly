@@ -22,6 +22,7 @@ namespace Dragonfly.Http
             StartLine,
             MessageHeader,
             MessageBody,
+            Terminated,
         }
 
         private string _method;
@@ -44,6 +45,13 @@ namespace Dragonfly.Http
             };
         }
 
+        public bool LocalIntakeFin
+        {
+            get { return _mode == Mode.MessageBody 
+                ? _messageBody.LocalIntakeFin 
+                : _mode == Mode.Terminated; }
+        }
+
         public bool Consume(Baton baton, Action callback, Action<Exception> fault)
         {
             for (; ; )
@@ -51,22 +59,24 @@ namespace Dragonfly.Http
                 switch (_mode)
                 {
                     case Mode.StartLine:
-                        if (baton.Complete)
+                        if (baton.RemoteIntakeFin)
                         {
-                            baton.Next = Connection.Next.CloseConnection;
+                            _mode = Mode.Terminated;
                             return false;
                         }
 
                         if (!TakeStartLine(baton))
+                        {
                             return false;
+                        }
 
                         _mode = Mode.MessageHeader;
                         break;
 
                     case Mode.MessageHeader:
-                        if (baton.Complete)
+                        if (baton.RemoteIntakeFin)
                         {
-                            baton.Next = Connection.Next.CloseConnection;
+                            _mode = Mode.Terminated;
                             return false;
                         }
 
@@ -92,6 +102,9 @@ namespace Dragonfly.Http
 
                     case Mode.MessageBody:
                         return _messageBody.Consume(baton, callback, fault);
+
+                    case Mode.Terminated:
+                        return false;
                 }
             }
         }

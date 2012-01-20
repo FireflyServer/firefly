@@ -57,8 +57,7 @@ namespace Profile.HeaderParser
                                 var baton = new Baton
                                                 {
                                                     Buffer = new ArraySegment<byte>(data),
-                                                    Complete = false,
-                                                    Next = Connection.Next.ReadMore
+                                                    RemoteIntakeFin = false,
                                                 };
                                 var endOfHeaders = false;
                                 while (!endOfHeaders)

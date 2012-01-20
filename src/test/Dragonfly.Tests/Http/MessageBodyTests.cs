@@ -37,7 +37,6 @@ namespace Dragonfly.Tests.Http
             Assert.False(sr);
             Assert.NotNull(baton.Buffer);
             Assert.Equal(0, baton.Buffer.Count);
-            Assert.Equal(Connection.Next.ReadMore, baton.Next);
             Assert.NotNull(resultData.Array);
             Assert.Equal(11, resultData.Count);
         }
@@ -79,7 +78,6 @@ namespace Dragonfly.Tests.Http
             Assert.NotNull(dataBytesBeforeResume);
             Assert.NotNull(dataBytesBeforeResume.Array);
             Assert.Equal(0, baton.Buffer.Count);
-            Assert.Equal(Connection.Next.ReadMore, baton.Next);
         }
 
 

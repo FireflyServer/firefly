@@ -10,7 +10,7 @@ namespace Dragonfly.Tests.Http
         public void DemandsMoreIfFirstLineIncomplete()
         {
             Input.Add("GET / HTTP/1.1\r");
-            AssertInputState(false, Connection.Next.ReadMore, "GET / HTTP/1.1\r");
+            AssertInputState(false, false, "GET / HTTP/1.1\r");
             AssertOutputState(false, 0);
         }
 
@@ -19,7 +19,7 @@ namespace Dragonfly.Tests.Http
         public void ConsumesFirstLineIfComplete()
         {
             Input.Add("GET / HTTP/1.1\r\n");
-            AssertInputState(false, Connection.Next.ReadMore, "");
+            AssertInputState(false, false, "");
             AssertOutputState(false, 0);
         }
 
@@ -27,7 +27,7 @@ namespace Dragonfly.Tests.Http
         public void IncompleteHeadersAreLeftIntact()
         {
             Input.Add("GET / HTTP/1.1\r\nfoo: bar\r");
-            AssertInputState(false, Connection.Next.ReadMore, "foo: bar\r");
+            AssertInputState(false, false, "foo: bar\r");
             AssertOutputState(false, 0);
         }
 
@@ -35,7 +35,7 @@ namespace Dragonfly.Tests.Http
         public void CharacterFollowingHeaderMustBeKnownBecauseOfHeaderWrapping()
         {
             Input.Add("GET / HTTP/1.1\r\nfoo: bar\r\nfrap: quad\r\n");
-            AssertInputState(false, Connection.Next.ReadMore, "frap: quad\r\n");
+            AssertInputState(false, false, "frap: quad\r\n");
             AssertOutputState(false, 0);
         }
 
@@ -43,7 +43,7 @@ namespace Dragonfly.Tests.Http
         public void AllCompleteHeadersAreConsumed()
         {
             Input.Add("GET / HTTP/1.1\r\nfoo: bar\r\nfrap: quad\r\n\r");
-            AssertInputState(false, Connection.Next.ReadMore, "\r");
+            AssertInputState(false, false, "\r");
             AssertOutputState(false, 0);
         }
 
@@ -52,7 +52,7 @@ namespace Dragonfly.Tests.Http
         {
             Input.Add("GET / HTTP/1.1\r\nfoo: bar\r\nfrap: quad\r\n\r\n");
             Input.End();
-            AssertInputState(false, Connection.Next.NewFrame, "");
+            AssertInputState(false, true, "");
             Assert.Equal(1, App.CallCount);
             AssertOutputState(true);
         }
@@ -72,7 +72,7 @@ namespace Dragonfly.Tests.Http
 "x-5:\t  \t \talpha\tbeta\t  \t \t\r\n" +
 "\r\n");
             Input.End();
-            AssertInputState(false, Connection.Next.NewFrame, "");
+            AssertInputState(false, true, "");
             AssertOutputState(true);
 
             Assert.Equal("alpha beta", App.RequestHeader("x-1"));
@@ -99,7 +99,7 @@ namespace Dragonfly.Tests.Http
 "\r\n");
             Input.End();
 
-            AssertInputState(false, Connection.Next.NewFrame, "");
+            AssertInputState(false, true, "");
             AssertOutputState(true);
 
             var x1 = App.RequestHeaders["x-1"].ToArray();
@@ -124,7 +124,7 @@ namespace Dragonfly.Tests.Http
 "x-1:\talpha beta4\t\r\n" +
 "\r\n");
             Input.End();
-            AssertInputState(false, Connection.Next.NewFrame, "");
+            AssertInputState(false, true, "");
             AssertOutputState(true);
 
             var x1 = App.RequestHeaders["x-1"].ToArray();
