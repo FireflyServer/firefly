@@ -16,7 +16,7 @@ namespace Dragonfly.Tests.Http
             // Arrange
             var resultData = new ArraySegment<byte>();
 
-            var body = new MessageBody.ForRemainingData();
+            var body = new MessageBody.ForRemainingData(()=> { });
             var cancel = body.Subscribe(
                 (data, continuation) =>
                     {
@@ -48,7 +48,7 @@ namespace Dragonfly.Tests.Http
             // Arrange
             var nextData = new ArraySegment<byte>();
             Action nextContinuation = null;
-            var body = new MessageBody.ForRemainingData();
+            var body = new MessageBody.ForRemainingData(()=> { });
             var cancel = body.Subscribe(
                 (data, continuation) =>
                 {

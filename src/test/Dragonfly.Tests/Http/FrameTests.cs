@@ -36,6 +36,7 @@ Host:localhost
         public void ValuesFromTheOwinSpecificationArePresent()
         {
             Input.Add("GET /hello/world?x=y HTTP/1.1\r\nHost: london\r\nfoo: bar\r\nfrap: quad\r\n\r\n");
+            Input.End();
             AssertInputState(false, Connection.Next.NewFrame, "");
             AssertOutputState(true);
             Assert.Equal(1, App.CallCount);

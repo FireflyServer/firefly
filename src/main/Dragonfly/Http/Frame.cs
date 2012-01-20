@@ -31,15 +31,16 @@ namespace Dragonfly.Http
         private string _httpVersion;
         private readonly IDictionary<string, IEnumerable<string>> _headers = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
         private MessageBody _messageBody;
+        private bool _resultStarted;
 
         public Frame(AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action produceEnd)
         {
             _app = app;
             _produceData = produceData;
-            _produceEnd = () => 
-            { 
-                produceEnd();
-                _messageBody.Drain();
+            _produceEnd = () =>
+            {
+                if (!_messageBody.Drain(produceEnd))
+                    produceEnd();
             };
         }
 
@@ -76,27 +77,18 @@ namespace Dragonfly.Http
                                 return false;
                         }
 
-                        _messageBody = MessageBody.For(_httpVersion, _headers);
+                        var resumeBody = HandleExpectContinue(callback);
+                        _messageBody = MessageBody.For(
+                            _httpVersion,
+                            _headers,
+                            () =>
+                            {
+                                if (!Consume(baton, resumeBody, fault))
+                                    resumeBody.Invoke();
+                            });
                         _mode = Mode.MessageBody;
-
-                        IEnumerable<string> expect;
-                        if (_httpVersion.Equals("HTTP/1.1") &&
-                            _headers.TryGetValue("Expect", out expect) &&
-                            (expect.FirstOrDefault() ?? "").Equals("100-continue", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _messageBody.SubscribeCalled =
-                                earlyData =>
-                                {
-                                    if (earlyData)
-                                        return;
-
-                                    var bytes = Encoding.Default.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
-                                    _produceData(new ArraySegment<byte>(bytes, 0, bytes.Length), null);
-                                };
-                        }
-
                         Execute();
-                        break;
+                        return true;
 
                     case Mode.MessageBody:
                         return _messageBody.Consume(baton, callback, fault);
@@ -104,13 +96,39 @@ namespace Dragonfly.Http
             }
         }
 
-        private void Execute()
+        Action HandleExpectContinue(Action continuation)
+        {
+            IEnumerable<string> expect;
+            if (_httpVersion.Equals("HTTP/1.1") &&
+                _headers.TryGetValue("Expect", out expect) &&
+                (expect.FirstOrDefault() ?? "").Equals("100-continue", StringComparison.OrdinalIgnoreCase))
+            {
+                return
+                    () =>
+                    {
+                        if (!_resultStarted)
+                        {
+                            continuation.Invoke();
+                        }
+                        else
+                        {
+                            var bytes = Encoding.Default.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
+                            if (!_produceData(new ArraySegment<byte>(bytes), continuation))
+                                continuation.Invoke();
+                        }
+                    };
+            }
+            return continuation;
+        }
+
+        private bool Execute()
         {
             var env = CreateOwinEnvironment();
             _app(
                 env,
                 (status, headers, body) =>
                 {
+                    _resultStarted = true;
                     Action continuation =
                         () => body(
                             _produceData,
@@ -121,6 +139,8 @@ namespace Dragonfly.Http
                         continuation.Invoke();
                 },
                 ex => _produceEnd());
+
+            return true;
         }
 
 

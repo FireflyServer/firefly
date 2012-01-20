@@ -51,6 +51,7 @@ namespace Dragonfly.Tests.Http
         public void BlankLineEndsHeadersAndCallsTheAppDelegate()
         {
             Input.Add("GET / HTTP/1.1\r\nfoo: bar\r\nfrap: quad\r\n\r\n");
+            Input.End();
             AssertInputState(false, Connection.Next.NewFrame, "");
             Assert.Equal(1, App.CallCount);
             AssertOutputState(true);
@@ -70,7 +71,7 @@ namespace Dragonfly.Tests.Http
 "x-4:\talpha beta\t\r\n" +
 "x-5:\t  \t \talpha\tbeta\t  \t \t\r\n" +
 "\r\n");
-
+            Input.End();
             AssertInputState(false, Connection.Next.NewFrame, "");
             AssertOutputState(true);
 
@@ -96,6 +97,7 @@ namespace Dragonfly.Tests.Http
 "x-1:\talpha beta4\t\r\n" +
 "x-1:\t  \t \talpha\tbeta5\t  \t \t\r\n" +
 "\r\n");
+            Input.End();
 
             AssertInputState(false, Connection.Next.NewFrame, "");
             AssertOutputState(true);
@@ -121,7 +123,7 @@ namespace Dragonfly.Tests.Http
 "x-1:alpha\r\n beta3 \r\n" +
 "x-1:\talpha beta4\t\r\n" +
 "\r\n");
-
+            Input.End();
             AssertInputState(false, Connection.Next.NewFrame, "");
             AssertOutputState(true);
 

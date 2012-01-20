@@ -37,6 +37,7 @@ a");
         [Fact]
         public void ChunkedSizeLineIsTakenAfterCrlf()
         {
+            App.OptionReadRequestBody = true;
             Input.Add(
 @"POST / HTTP/1.1
 Transfer-Encoding: chunked

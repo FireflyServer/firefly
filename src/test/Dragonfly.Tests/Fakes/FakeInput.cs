@@ -64,7 +64,10 @@ namespace Dragonfly.Tests.Fakes
         private void CallConsume()
         {
             WaitHandle.Reset();
-            Paused = Consume(Baton, Resume, Error);
+            
+            Paused = true;
+            if (!Consume(Baton, Resume, Error))
+                Paused = false;
         }
 
         public void Resume()

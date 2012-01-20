@@ -8,14 +8,11 @@ namespace Dragonfly.Http
 {
     public abstract class MessageBody
     {
+        Subscriber _subscriber;
+        private Action _continuation;
         private bool _cancel;
 
-        Subscriber _activeSubscriber;
-        readonly Subscriber _earlySubscriber;
 
-        private Tuple<ArraySegment<byte>, Action> _earlyData;
-        private Exception _earlyError;
-        private bool _earlyComplete;
         public Action<bool> SubscribeCalled = hasEarlyData => { };
 
         class Subscriber
@@ -32,17 +29,9 @@ namespace Dragonfly.Http
             public Action Complete { get; private set; }
         }
 
-        public MessageBody()
+        public MessageBody(Action continuation)
         {
-            _activeSubscriber = _earlySubscriber = new Subscriber(
-                (data, continuation) =>
-                {
-                    var prior = Interlocked.CompareExchange(ref _earlyData, Tuple.Create(data, continuation), null);
-                    // assert prior is null
-                    return true;
-                },
-                ex => _earlyError = ex,
-                () => _earlyComplete = true);
+            _continuation = continuation;
         }
 
         static bool TryGet(IDictionary<string, IEnumerable<string>> headers, string name, out string value)
@@ -68,7 +57,7 @@ namespace Dragonfly.Http
             return true;
         }
 
-        public static MessageBody For(string httpVersion, IDictionary<string, IEnumerable<string>> headers)
+        public static MessageBody For(string httpVersion, IDictionary<string, IEnumerable<string>> headers, Action continuation)
         {
             // see also http://tools.ietf.org/html/rfc2616#section-4.4
 
@@ -83,39 +72,39 @@ namespace Dragonfly.Http
             string transferEncoding;
             if (TryGet(headers, "Transfer-Encoding", out transferEncoding))
             {
-                return new ForChunkedEncoding(keepAlive);
+                return new ForChunkedEncoding(keepAlive, continuation);
             }
 
             string contentLength;
             if (TryGet(headers, "Content-Length", out contentLength))
             {
-                return new ForContentLength(keepAlive, int.Parse(contentLength));
+                return new ForContentLength(keepAlive, int.Parse(contentLength), continuation);
             }
 
             if (keepAlive)
             {
-                return new ForContentLength(true, 0);
+                return new ForContentLength(true, 0, continuation);
             }
 
-            return new ForRemainingData();
+            return new ForRemainingData(continuation);
         }
 
-        public void Drain()
+        public bool Drain(Action continuation)
         {
-            if (_activeSubscriber == _earlySubscriber)
-            {
-                Subscribe(
-                    (data, continuation) => false,
-                    ex => { },
-                    () => { });
-            }
+            if (_subscriber != null) return false;
+
+            Subscribe(
+                (_, __) => false,
+                _ => continuation(),
+                continuation).Invoke();
+
+            return true;
         }
 
         public Action Subscribe(Func<ArraySegment<byte>, Action, bool> next, Action<Exception> error, Action complete)
         {
             var subscriber = new Subscriber(next, error, complete);
-            var priorSubscriber = Interlocked.CompareExchange(ref _activeSubscriber, subscriber, _earlySubscriber);
-            if (priorSubscriber != _earlySubscriber)
+            if (Interlocked.CompareExchange(ref _subscriber, subscriber, null) != null)
             {
                 try
                 {
@@ -127,25 +116,11 @@ namespace Dragonfly.Http
                 return () => { };
             }
 
-            // repeat the early data to subscriber
-            var earlyData = Interlocked.Exchange(ref _earlyData, null);
+            SubscribeCalled(false);
 
-            SubscribeCalled(earlyData != null);
-
-            if (earlyData != null)
-            {
-                var paused = next(earlyData.Item1, earlyData.Item2);
-                if (!paused)
-                    earlyData.Item2.Invoke();
-            }
-            else if (_earlyError != null)
-            {
-                _activeSubscriber.Error(_earlyError);
-            }
-            else if (_earlyComplete)
-            {
-                _activeSubscriber.Complete();
-            }
+            var continuation = Interlocked.Exchange(ref _continuation, null);
+            if (continuation != null)
+                continuation.Invoke();
 
             return () => _cancel = true;
         }
@@ -155,18 +130,22 @@ namespace Dragonfly.Http
 
         public class ForRemainingData : MessageBody
         {
+            public ForRemainingData(Action continuation) : base(continuation)
+            {
+            }
+
             public override bool Consume(Baton baton, Action callback, Action<Exception> fault)
             {
                 if (baton.Complete)
                 {
-                    _activeSubscriber.Complete();
+                    _subscriber.Complete();
                     baton.Next = Connection.Next.CloseConnection;
                     return false;
                 }
 
                 var consumed = baton.Take(baton.Buffer.Count);
 
-                return _activeSubscriber.Next(consumed, callback);
+                return _subscriber.Next(consumed, callback);
             }
         }
 
@@ -176,7 +155,7 @@ namespace Dragonfly.Http
             private readonly int _contentLength;
             private int _neededLength;
 
-            public ForContentLength(bool keepAlive, int contentLength)
+            public ForContentLength(bool keepAlive, int contentLength, Action continuation) : base(continuation)
             {
                 _keepAlive = keepAlive;
                 _contentLength = contentLength;
@@ -193,29 +172,29 @@ namespace Dragonfly.Http
                 if (_neededLength != 0)
                 {
                     // TODO: if check baton.Complete==true && neededlength != 0 then remote socket closed early
-                    return _activeSubscriber.Next(consumed, callback);
+                    return _subscriber.Next(consumed, callback);
                 }
 
                 baton.Next = _keepAlive ? Connection.Next.NewFrame : Connection.Next.CloseConnection;
 
                 if (consumed.Count != 0)
                 {
-                    var delayed = _activeSubscriber.Next(
+                    var delayed = _subscriber.Next(
                         consumed,
                         () =>
                         {
-                            _activeSubscriber.Complete();
+                            _subscriber.Complete();
                             callback();
                         });
                     if (delayed)
                     {
                         return true;
                     }
-                    _activeSubscriber.Complete();
+                    _subscriber.Complete();
                     return false;
                 }
 
-                _activeSubscriber.Complete();
+                _subscriber.Complete();
                 return false;
             }
         }
@@ -239,7 +218,7 @@ namespace Dragonfly.Http
             } ;
 
 
-            public ForChunkedEncoding(bool keepAlive)
+            public ForChunkedEncoding(bool keepAlive, Action continuation) : base(continuation)
             {
                 _keepAlive = keepAlive;
             }
@@ -262,7 +241,7 @@ namespace Dragonfly.Http
                             {
                                 _mode = Mode.Complete;
                                 baton.Next = _keepAlive ? Connection.Next.NewFrame : Connection.Next.CloseConnection;
-                                _activeSubscriber.Complete();
+                                _subscriber.Complete();
                                 return false;
                             }
                             _mode = Mode.ChunkData;
@@ -283,7 +262,7 @@ namespace Dragonfly.Http
                             _neededLength -= consumeLength;
                             var consumed = baton.Take(consumeLength);
 
-                            var paused = _activeSubscriber.Next(
+                            var paused = _subscriber.Next(
                                 consumed,
                                 () =>
                                 {
