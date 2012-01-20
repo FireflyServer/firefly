@@ -4,7 +4,7 @@
 open Fake
 
 // properties
-let version = "0.1.0"
+let version = "0.2"
 let projectName = "Dragonfly"
 let projectDescription = "Dragonfly is a .NET HTTP Server in an assembly."
 let authors = ["Louis DeJardin"]
@@ -40,6 +40,18 @@ Target "CleanTargetDir" (fun _ ->
     CreateDir testDir
     CreateDir deployDir
     CreateDir nugetDir
+)
+
+Target "ApplyVersion" (fun _ ->
+    let apply files =
+        for file in files do
+            ReplaceAssemblyInfoVersions (fun p ->
+                {p with 
+                    AssemblyVersion = version;
+                    AssemblyFileVersion = version;
+                    OutputFileName = file; })
+
+    !! "./src/**/AssemblyInfo.cs" |> apply
 )
 
 Target "CompileApp" (fun _ ->
@@ -102,7 +114,7 @@ Target "xUnitTest" (fun _ ->
 //                ToolPath = fxCopRoot})
 //)
 
-Target "DeployZip" (fun _ ->
+Target "PackageZip" (fun _ ->
     CreateDir deployDir
 
     !+ (buildDir + "\**\*.*") 
@@ -111,7 +123,7 @@ Target "DeployZip" (fun _ ->
         |> Zip buildDir (deployDir + "Dragonfly." + version + ".zip")
 )
 
-Target "DeployNuGet" (fun _ ->
+Target "PackageNuGet" (fun _ ->
     XCopy docsDir (nugetDir @@ "docs/")
     XCopy buildDir (nugetDir @@ "build/")
 
@@ -135,21 +147,23 @@ let Phase name = (
 )
 
 // build phases
-Phase "Startup"
-  ==> Phase "Clean" 
+Phase "Clean"
+  ==> Phase "Initialize" 
+  ==> Phase "Process" 
   ==> Phase "Compile" 
   ==> Phase "Test" 
-  ==> Phase "Deploy" 
+  ==> Phase "Package"
   ==> Phase "Install"
+  ==> Phase "Deploy" 
+
+Phase "Default" <== ["Package"]
 
 // build phase goals
 "Clean" <== ["CleanTargetDir"]
+"Process" <== ["ApplyVersion"]
 "Compile" <== ["CompileApp"; "CompileTest"]
 "Test" <== ["xUnitTest"]
-"Deploy" <== ["DeployZip"; "DeployNuGet"]
-
-// default target
-Phase "Default" <== ["Deploy"]
+"Package" <== ["PackageZip"; "PackageNuGet"]
 
 // start build
 Run <| getBuildParamOrDefault "target" "Default"
