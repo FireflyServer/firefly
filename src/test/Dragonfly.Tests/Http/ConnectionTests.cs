@@ -9,11 +9,13 @@ namespace Dragonfly.Tests.Http
         {
             Connection.Execute();
 
-            Assert.Equal(true, Socket.ReceivePaused);
-            Socket.Add("GET / HTTP/1.1\r\n");
-            Socket.Add("Host: localhost\r\n");
-            Socket.Add("Connection: close\r\n");
-            Socket.Add("\r\n");
+            Assert.Equal(true, Socket.Paused);
+            Socket.Add(
+@"GET / HTTP/1.1
+Host: localhost
+Connection: close
+
+");
             DisconnectedEvent.WaitOne();
             Assert.Equal("HTTP/1.1 200 OK\r\n\r\n", Socket.Output);
         }

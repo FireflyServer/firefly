@@ -19,16 +19,16 @@ namespace Dragonfly.Tests.Fakes
 
         public Encoding Encoding { get; set; }
 
-        public bool ReceivePaused { get; set; }
+        public bool Paused { get; set; }
         public SocketAsyncEventArgs ReceivePausedArgs { get; set; }
 
         public void Add(string text)
         {
             _input = Combine(_input, new ArraySegment<byte>(Encoding.GetBytes(text)));
-            if (ReceivePaused && _input.Count != 0)
+            if (Paused && _input.Count != 0)
             {
                 var args = ReceivePausedArgs;
-                ReceivePaused = false;
+                Paused = false;
                 ReceivePausedArgs = null;
 
                 SocketError errorCode;
@@ -67,7 +67,7 @@ namespace Dragonfly.Tests.Fakes
 
         public int Receive(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode)
         {
-            if (ReceivePaused)
+            if (Paused)
                 throw new InvalidOperationException("FakeSocket.Receive cannot be called when ReceivePaused is true");
 
             if (_input.Count == 0)
@@ -88,10 +88,10 @@ namespace Dragonfly.Tests.Fakes
 
         public bool ReceiveAsync(SocketAsyncEventArgs e)
         {
-            if (ReceivePaused)
+            if (Paused)
                 throw new InvalidOperationException("FakeSocket.Receive cannot be called when ReceivePaused is true");
 
-            ReceivePaused = true;
+            Paused = true;
             ReceivePausedArgs = e;
             ThreadPool.QueueUserWorkItem(_ => Add(""));
             return true;

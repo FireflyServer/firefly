@@ -20,12 +20,15 @@ namespace Dragonfly.Tests.Fakes
             return false;
         }
 
-        public void ProduceEnd()
+        public void ProduceEnd(bool keepAlive)
         {
             Ended = true;
+            KeepAlive = keepAlive;
         }
 
+
         public bool Ended { get; set; }
+        public bool KeepAlive { get; set; }
         public MemoryStream MemoryStream { get; set; }
         public Encoding Encoding { get; set; }
 

@@ -41,7 +41,7 @@ namespace Dragonfly.Http
                          };
 
             NewFrame();
-            
+
             _fault = ex =>
                          {
                              Debug.WriteLine(ex.Message);
@@ -254,13 +254,15 @@ namespace Dragonfly.Http
             return new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError };
         }
 
-        private void ProduceEnd()
+        private void ProduceEnd(bool keepAlive)
         {
-            //TODO keep-alive
-            //if (_socket.Connected)
-            //{
-            //    _socket.Shutdown(SocketShutdown.Send);
-            //}
+            if (keepAlive)
+            {
+                NewFrame();
+                ThreadPool.QueueUserWorkItem(_ => Go());
+                return;
+            }
+
             _trace.Event(TraceEventType.Stop, TraceMessage.Connection);
 
             _socketReceiveAsyncEventArgs.Dispose();

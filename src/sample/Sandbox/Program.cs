@@ -12,6 +12,7 @@ using Dragonfly.Utils;
 using Gate;
 using Gate.Adapters.Nancy;
 using Gate.Builder;
+using Gate.Middleware;
 using Gate.Owin;
 
 namespace Sandbox
@@ -173,7 +174,7 @@ Connection: close
                 .Use(SetResponseHeader, "X-Server", "Dragonfly")
                 .Use(ShowCalls)
                 .UseWebSockets("/socketserver", OnConnection)
-                .Use(SetResponseHeader, "Connection", "close")
+                .ContentLength()
                 .RunNancy();
 
             var app = builder.Materialize<AppDelegate>();

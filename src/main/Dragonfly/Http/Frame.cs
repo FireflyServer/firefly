@@ -34,23 +34,28 @@ namespace Dragonfly.Http
         private MessageBody _messageBody;
         private bool _resultStarted;
 
-        public Frame(AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action produceEnd)
+        public Frame(AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action<bool> produceEnd)
         {
             _app = app;
             _produceData = produceData;
             _produceEnd = () =>
             {
-                if (!_messageBody.Drain(produceEnd))
-                    produceEnd();
+                if (!_messageBody.Drain(() => produceEnd(KeepAlive)))
+                    produceEnd(KeepAlive);
             };
         }
 
         public bool LocalIntakeFin
         {
-            get { return _mode == Mode.MessageBody 
-                ? _messageBody.LocalIntakeFin 
-                : _mode == Mode.Terminated; }
+            get
+            {
+                return _mode == Mode.MessageBody
+                    ? _messageBody.LocalIntakeFin
+                    : _mode == Mode.Terminated;
+            }
         }
+
+        public bool KeepAlive { get; set; }
 
         public bool Consume(Baton baton, Action callback, Action<Exception> fault)
         {
@@ -96,6 +101,7 @@ namespace Dragonfly.Http
                                 if (!Consume(baton, resumeBody, fault))
                                     resumeBody.Invoke();
                             });
+                        KeepAlive = _messageBody.RequestKeepAlive;
                         _mode = Mode.MessageBody;
                         Execute();
                         return true;
@@ -142,20 +148,20 @@ namespace Dragonfly.Http
                 (status, headers, body) =>
                 {
                     _resultStarted = true;
-                    Action continuation =
+
+                    Action sendResponseBody =
                         () => body(
                             _produceData,
                             ex => _produceEnd(),
                             () => _produceEnd());
 
-                    if (!_produceData(CreateResponseHeader(status, headers), continuation))
-                        continuation.Invoke();
+                    if (!_produceData(CreateResponseHeader(status, headers), sendResponseBody))
+                        sendResponseBody.Invoke();
                 },
                 ex => _produceEnd());
 
             return true;
         }
-
 
         private static ArraySegment<byte> CreateResponseHeader(string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
         {

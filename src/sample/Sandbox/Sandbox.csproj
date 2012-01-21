@@ -48,6 +48,9 @@
     <Reference Include="Gate.Builder">
       <HintPath>..\..\..\packages\Gate.Builder.0.2.1\lib\net40\Gate.Builder.dll</HintPath>
     </Reference>
+    <Reference Include="Gate.Middleware">
+      <HintPath>..\..\..\packages\Gate.Middleware.0.2.1\lib\net40\Gate.Middleware.dll</HintPath>
+    </Reference>
     <Reference Include="Gate.Owin">
       <HintPath>..\..\..\packages\Gate.Owin.0.2.1\lib\net40\Gate.Owin.dll</HintPath>
     </Reference>

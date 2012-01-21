@@ -13,6 +13,7 @@ namespace Dragonfly.Http
         private bool _cancel;
 
         public bool LocalIntakeFin { get; set; }
+        public bool RequestKeepAlive { get; protected set; }
 
         class Subscriber
         {
@@ -33,29 +34,6 @@ namespace Dragonfly.Http
             _continuation = continuation;
         }
 
-        static bool TryGet(IDictionary<string, IEnumerable<string>> headers, string name, out string value)
-        {
-            IEnumerable<string> values;
-            if (!headers.TryGetValue(name, out values) || values == null)
-            {
-                value = null;
-                return false;
-            }
-            var count = values.Count();
-            if (count == 0)
-            {
-                value = null;
-                return false;
-            }
-            if (count == 1)
-            {
-                value = values.Single();
-                return true;
-            }
-            value = string.Join(",", values.ToString());
-            return true;
-        }
-
         public static MessageBody For(string httpVersion, IDictionary<string, IEnumerable<string>> headers, Action continuation)
         {
             // see also http://tools.ietf.org/html/rfc2616#section-4.4
@@ -63,19 +41,19 @@ namespace Dragonfly.Http
             var keepAlive = httpVersion != "HTTP/1.0";
 
             string connection;
-            if (TryGet(headers, "Connection", out connection))
+            if (headers.TryGet("Connection", out connection))
             {
                 keepAlive = connection.Equals("keep-alive", StringComparison.OrdinalIgnoreCase);
             }
 
             string transferEncoding;
-            if (TryGet(headers, "Transfer-Encoding", out transferEncoding))
+            if (headers.TryGet("Transfer-Encoding", out transferEncoding))
             {
                 return new ForChunkedEncoding(keepAlive, continuation);
             }
 
             string contentLength;
-            if (TryGet(headers, "Content-Length", out contentLength))
+            if (headers.TryGet("Content-Length", out contentLength))
             {
                 return new ForContentLength(keepAlive, int.Parse(contentLength), continuation);
             }
@@ -148,13 +126,12 @@ namespace Dragonfly.Http
 
         public class ForContentLength : MessageBody
         {
-            private readonly bool _keepAlive;
             private readonly int _contentLength;
             private int _neededLength;
 
             public ForContentLength(bool keepAlive, int contentLength, Action continuation) : base(continuation)
             {
-                _keepAlive = keepAlive;
+                RequestKeepAlive = keepAlive; 
                 _contentLength = contentLength;
                 _neededLength = _contentLength;
             }
@@ -202,7 +179,6 @@ namespace Dragonfly.Http
         /// </summary>
         public class ForChunkedEncoding : MessageBody
         {
-            private readonly bool _keepAlive;
             private int _neededLength;
 
             private Mode _mode = Mode.ChunkSizeLine;
@@ -217,7 +193,7 @@ namespace Dragonfly.Http
 
             public ForChunkedEncoding(bool keepAlive, Action continuation) : base(continuation)
             {
-                _keepAlive = keepAlive;
+                RequestKeepAlive = keepAlive;
             }
 
             public override bool Consume(Baton baton, Action callback, Action<Exception> fault)
