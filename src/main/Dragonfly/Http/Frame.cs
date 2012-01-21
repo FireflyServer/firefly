@@ -67,6 +67,7 @@ namespace Dragonfly.Http
                         if (baton.RemoteIntakeFin)
                         {
                             _mode = Mode.Terminated;
+                            _produceEnd();
                             return false;
                         }
 
@@ -163,21 +164,61 @@ namespace Dragonfly.Http
             return true;
         }
 
-        private static ArraySegment<byte> CreateResponseHeader(string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
+        private ArraySegment<byte> CreateResponseHeader(string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
         {
             var sb = new StringBuilder(128);
             sb.Append("HTTP/1.1 ").AppendLine(status);
 
+            var hasConnection = false;
+            var hasConnectionClose = false;
+            var hasTransferEncoding = false;
+            var hasContentLength = false;
             if (headers != null)
             {
                 foreach (var header in headers)
                 {
+                    var isConnection = false;
+                    var isTransferEncoding = false;
+                    var isContentLength = false;
+                    if (!hasConnection &&
+                        string.Equals(header.Key, "Connection", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasConnection = isConnection = true;
+                    }
+                    else if (!hasTransferEncoding &&
+                        string.Equals(header.Key, "Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasTransferEncoding = isTransferEncoding = true;
+                    }
+                    else if (!hasContentLength &&
+                        string.Equals(header.Key, "Content-Length", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasContentLength = isContentLength = true;
+                    }
+
                     foreach (var value in header.Value)
                     {
                         sb.Append(header.Key).Append(": ").Append(value).Append("\r\n");
+                        if (isConnection && value.IndexOf("close", StringComparison.OrdinalIgnoreCase) != -1)
+                        {
+                            hasConnectionClose = true;
+                            KeepAlive = false;
+                        }
                     }
                 }
             }
+
+            if (hasTransferEncoding == false && hasContentLength == false)
+            {
+                KeepAlive = false;
+            }
+            if (KeepAlive == false && hasConnectionClose == false)
+            {
+                sb.Append("Connection: close\r\n");
+            }
+            //var hasConnection = false;
+            //var hasTransferEncoding = false;
+            //var hasContentLength = false;
 
             sb.Append("\r\n");
             return new ArraySegment<byte>(Encoding.Default.GetBytes(sb.ToString()));

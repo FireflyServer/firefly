@@ -174,7 +174,7 @@ Connection: close
                 .Use(SetResponseHeader, "X-Server", "Dragonfly")
                 .Use(ShowCalls)
                 .UseWebSockets("/socketserver", OnConnection)
-                .ContentLength()
+                .Chunked()
                 .RunNancy();
 
             var app = builder.Materialize<AppDelegate>();
