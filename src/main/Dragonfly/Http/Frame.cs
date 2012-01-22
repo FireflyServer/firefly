@@ -169,7 +169,6 @@ namespace Dragonfly.Http
             sb.Append("HTTP/1.1 ").AppendLine(status);
 
             var hasConnection = false;
-            var hasConnectionClose = false;
             var hasTransferEncoding = false;
             var hasContentLength = false;
             if (headers != null)
@@ -200,7 +199,6 @@ namespace Dragonfly.Http
                         sb.Append(header.Key).Append(": ").Append(value).Append("\r\n");
                         if (isConnection && value.IndexOf("close", StringComparison.OrdinalIgnoreCase) != -1)
                         {
-                            hasConnectionClose = true;
                             KeepAlive = false;
                         }
                     }
@@ -211,7 +209,7 @@ namespace Dragonfly.Http
             {
                 KeepAlive = false;
             }
-            if (KeepAlive == false && hasConnectionClose == false)
+            if (KeepAlive == false && hasConnection == false)
             {
                 sb.Append("Connection: close\r\n");
             }
