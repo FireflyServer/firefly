@@ -23,8 +23,6 @@ namespace Dragonfly.Http
             _trace = trace;
         }
 
-        private static readonly Action Noop = () => { };
-
         public IDisposable Create(AppDelegate app, int port)
         {
             return Create(app, new IPEndPoint(0, port));

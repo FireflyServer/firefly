@@ -29,7 +29,7 @@ namespace Dragonfly.Http
             public Action Complete { get; private set; }
         }
 
-        public MessageBody(Action continuation)
+        protected MessageBody(Action continuation)
         {
             _continuation = continuation;
         }
@@ -103,7 +103,7 @@ namespace Dragonfly.Http
         public abstract bool Consume(Baton baton, Action callback, Action<Exception> fault);
 
 
-        public class ForRemainingData : MessageBody
+        class ForRemainingData : MessageBody
         {
             public ForRemainingData(Action continuation) : base(continuation)
             {
@@ -124,7 +124,7 @@ namespace Dragonfly.Http
             }
         }
 
-        public class ForContentLength : MessageBody
+        class ForContentLength : MessageBody
         {
             private readonly int _contentLength;
             private int _neededLength;
@@ -177,7 +177,7 @@ namespace Dragonfly.Http
         /// <summary>
         /// http://tools.ietf.org/html/rfc2616#section-3.6.1
         /// </summary>
-        public class ForChunkedEncoding : MessageBody
+        class ForChunkedEncoding : MessageBody
         {
             private int _neededLength;
 

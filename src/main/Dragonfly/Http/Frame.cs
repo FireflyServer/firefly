@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using Dragonfly.Utils;
 using Gate.Owin;
 
 // ReSharper disable AccessToModifiedClosure
@@ -33,6 +31,7 @@ namespace Dragonfly.Http
         private readonly IDictionary<string, IEnumerable<string>> _headers = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
         private MessageBody _messageBody;
         private bool _resultStarted;
+        private bool _keepAlive;
 
         public Frame(AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action<bool> produceEnd)
         {
@@ -40,8 +39,8 @@ namespace Dragonfly.Http
             _produceData = produceData;
             _produceEnd = () =>
             {
-                if (!_messageBody.Drain(() => produceEnd(KeepAlive)))
-                    produceEnd(KeepAlive);
+                if (!_messageBody.Drain(() => produceEnd(_keepAlive)))
+                    produceEnd(_keepAlive);
             };
         }
 
@@ -54,8 +53,6 @@ namespace Dragonfly.Http
                     : _mode == Mode.Terminated;
             }
         }
-
-        public bool KeepAlive { get; set; }
 
         public bool Consume(Baton baton, Action callback, Action<Exception> fault)
         {
@@ -101,7 +98,7 @@ namespace Dragonfly.Http
                                 if (!Consume(baton, resumeBody, fault))
                                     resumeBody.Invoke();
                             });
-                        KeepAlive = _messageBody.RequestKeepAlive;
+                        _keepAlive = _messageBody.RequestKeepAlive;
                         _mode = Mode.MessageBody;
                         Execute();
                         return true;
@@ -140,7 +137,7 @@ namespace Dragonfly.Http
             return continuation;
         }
 
-        private bool Execute()
+        private void Execute()
         {
             var env = CreateOwinEnvironment();
             _app(
@@ -160,7 +157,7 @@ namespace Dragonfly.Http
                 },
                 ex => _produceEnd());
 
-            return true;
+            return;
         }
 
         private ArraySegment<byte> CreateResponseHeader(string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
@@ -176,8 +173,6 @@ namespace Dragonfly.Http
                 foreach (var header in headers)
                 {
                     var isConnection = false;
-                    var isTransferEncoding = false;
-                    var isContentLength = false;
                     if (!hasConnection &&
                         string.Equals(header.Key, "Connection", StringComparison.OrdinalIgnoreCase))
                     {
@@ -186,12 +181,12 @@ namespace Dragonfly.Http
                     else if (!hasTransferEncoding &&
                         string.Equals(header.Key, "Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
                     {
-                        hasTransferEncoding = isTransferEncoding = true;
+                        hasTransferEncoding = true;
                     }
                     else if (!hasContentLength &&
                         string.Equals(header.Key, "Content-Length", StringComparison.OrdinalIgnoreCase))
                     {
-                        hasContentLength = isContentLength = true;
+                        hasContentLength = true;
                     }
 
                     foreach (var value in header.Value)
@@ -199,7 +194,7 @@ namespace Dragonfly.Http
                         sb.Append(header.Key).Append(": ").Append(value).Append("\r\n");
                         if (isConnection && value.IndexOf("close", StringComparison.OrdinalIgnoreCase) != -1)
                         {
-                            KeepAlive = false;
+                            _keepAlive = false;
                         }
                     }
                 }
@@ -207,23 +202,15 @@ namespace Dragonfly.Http
 
             if (hasTransferEncoding == false && hasContentLength == false)
             {
-                KeepAlive = false;
+                _keepAlive = false;
             }
-            if (KeepAlive == false && hasConnection == false)
+            if (_keepAlive == false && hasConnection == false)
             {
                 sb.Append("Connection: close\r\n");
             }
-            //var hasConnection = false;
-            //var hasTransferEncoding = false;
-            //var hasContentLength = false;
 
             sb.Append("\r\n");
             return new ArraySegment<byte>(Encoding.Default.GetBytes(sb.ToString()));
-        }
-
-        private static ArraySegment<byte> Advance(ArraySegment<byte> buffer, int count)
-        {
-            return new ArraySegment<byte>(buffer.Array, buffer.Offset + count, buffer.Count - count);
         }
 
         private bool TakeStartLine(Baton baton)

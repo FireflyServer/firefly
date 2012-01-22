@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Threading;
 using Dragonfly.Utils;
 using Gate.Owin;
@@ -84,7 +82,7 @@ namespace Dragonfly.Http
         }
 
 
-        public void Go(bool newFrame)
+        private void Go(bool newFrame)
         {
             if (newFrame)
             {
