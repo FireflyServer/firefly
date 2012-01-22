@@ -67,6 +67,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Chunked.cs" />
     <Compile Include="Utils\Disposable.cs" />
     <Compile Include="MainModule.cs" />
     <Compile Include="Utils\NotImplementedStream.cs" />
