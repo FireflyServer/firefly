@@ -67,7 +67,6 @@ namespace Dragonfly.Http
                         if (baton.RemoteIntakeFin)
                         {
                             _mode = Mode.Terminated;
-                            _produceEnd();
                             return false;
                         }
 

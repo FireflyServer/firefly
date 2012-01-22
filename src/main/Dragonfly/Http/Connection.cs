@@ -40,8 +40,6 @@ namespace Dragonfly.Http
                              Buffer = new ArraySegment<byte>(new byte[1024], 0, 0)
                          };
 
-            NewFrame();
-
             _fault = ex =>
                          {
                              Debug.WriteLine(ex.Message);
@@ -54,7 +52,7 @@ namespace Dragonfly.Http
                 {
                     try
                     {
-                        Go();
+                        Go(false);
                     }
                     catch (Exception ex)
                     {
@@ -67,7 +65,7 @@ namespace Dragonfly.Http
                 {
                     try
                     {
-                        Go();
+                        Go(false);
                     }
                     catch (Exception ex)
                     {
@@ -77,7 +75,7 @@ namespace Dragonfly.Http
             try
             {
                 _socket.Blocking = false;
-                Go();
+                Go(true);
             }
             catch (Exception ex)
             {
@@ -85,14 +83,24 @@ namespace Dragonfly.Http
             }
         }
 
-        private void NewFrame()
-        {
-            _frame = new Frame(_app, ProduceData, ProduceEnd);
-        }
 
-
-        public void Go()
+        public void Go(bool newFrame)
         {
+            if (newFrame)
+            {
+                _frame = new Frame(_app, ProduceData, ProduceEnd);
+                if (_baton.Buffer.Count != 0)
+                {
+                    if (_frame.Consume(
+                        _baton,
+                        _frameConsumeCallback,
+                        _fault))
+                    {
+                        return;
+                    }
+                }
+            }
+
             while (_frame.LocalIntakeFin == false)
             {
                 SocketError recvError;
@@ -258,8 +266,7 @@ namespace Dragonfly.Http
         {
             if (keepAlive)
             {
-                NewFrame();
-                ThreadPool.QueueUserWorkItem(_ => Go());
+                ThreadPool.QueueUserWorkItem(_ => Go(true));
                 return;
             }
 

@@ -11,6 +11,8 @@ namespace Dragonfly.Tests.Fakes
     {
         private ArraySegment<byte> _input = new ArraySegment<byte>(new byte[0]);
         private ArraySegment<byte> _output = new ArraySegment<byte>(new byte[0]);
+        private readonly object _receiveLock = new object();
+        private readonly object _sendLock = new object();
 
         public FakeSocket()
         {
@@ -19,82 +21,113 @@ namespace Dragonfly.Tests.Fakes
 
         public Encoding Encoding { get; set; }
 
-        public bool Paused { get; set; }
-        public SocketAsyncEventArgs ReceivePausedArgs { get; set; }
+        public bool ReceiveAsyncPaused { get; set; }
+        public SocketAsyncEventArgs ReceiveAsyncArgs { get; set; }
 
-        public void Add(string text)
+        public bool DisconnectCalled { get; set; }
+        public bool ShutdownSendCalled { get; set; }
+        public bool ShutdownReceiveCalled { get; set; }
+
+
+        public string Input
         {
-            _input = Combine(_input, new ArraySegment<byte>(Encoding.GetBytes(text)));
-            if (Paused && _input.Count != 0)
-            {
-                var args = ReceivePausedArgs;
-                Paused = false;
-                ReceivePausedArgs = null;
-
-                SocketError errorCode;
-                var bytesTransferred = Receive(
-                    args.Buffer,
-                    args.Offset,
-                    args.Count,
-                    args.SocketFlags,
-                    out errorCode);
-
-                SetField(args, "m_BytesTransferred", bytesTransferred);
-                SetField(args, "m_SocketError", errorCode);
-                var callback = (ContextCallback)GetField(args, "m_ExecutionCallback");
-                callback(args);
-            }
+            get { lock (_receiveLock) { return Encoding.GetString(_input.Array, _input.Offset, _input.Count); } }
         }
-
-        ArraySegment<byte> Combine(ArraySegment<byte> arr0, ArraySegment<byte> arr1)
-        {
-            var combined = new ArraySegment<byte>(new byte[arr0.Count + arr1.Count]);
-            Array.Copy(arr0.Array, arr0.Offset, combined.Array, 0, arr0.Count);
-            Array.Copy(arr1.Array, arr1.Offset, combined.Array, arr0.Count, arr1.Count);
-            return combined;
-        }
-
-        // ISocket follows
-
-        public bool Blocking { get; set; }
-        
-        public bool Connected { get; private set; }
-
         public string Output
         {
             get { return Encoding.GetString(_output.Array, _output.Offset, _output.Count); }
         }
 
+        public void Add(string text)
+        {
+            ContextCallback callback;
+            lock (_receiveLock)
+            {
+                var buffer = new ArraySegment<byte>(Encoding.GetBytes(text));
+                var combined = new ArraySegment<byte>(new byte[_input.Count + buffer.Count]);
+                Array.Copy(_input.Array, _input.Offset, combined.Array, 0, _input.Count);
+                Array.Copy(buffer.Array, buffer.Offset, combined.Array, _input.Count, buffer.Count);
+                _input = combined;
+                callback = TryReceiveAsync();
+            }
+            if (callback != null)
+            {
+                callback(null);
+            }
+        }
+
+        int TakeInput(ArraySegment<byte> buffer)
+        {
+            lock (_receiveLock)
+            {
+                var bytesTransferred = Math.Min(buffer.Count, _input.Count);
+                Array.Copy(_input.Array, _input.Offset, buffer.Array, buffer.Offset, bytesTransferred);
+                _input = new ArraySegment<byte>(
+                    _input.Array,
+                    _input.Offset + bytesTransferred,
+                    _input.Count - bytesTransferred);
+                return bytesTransferred;
+            }
+        }
+        private int GiveOutput(ArraySegment<byte> buffer)
+        {
+            var bytesTransfered = buffer.Count;
+            var combined = new ArraySegment<byte>(new byte[_output.Count + buffer.Count]);
+            Array.Copy(_output.Array, _output.Offset, combined.Array, 0, _output.Count);
+            Array.Copy(buffer.Array, buffer.Offset, combined.Array, _output.Count, buffer.Count);
+            _output = combined;
+            return bytesTransfered;
+        }
+
+        ContextCallback TryReceiveAsync()
+        {
+            lock (_receiveLock)
+            {
+                if (ReceiveAsyncArgs == null || _input.Count == 0) return null;
+
+                var args = ReceiveAsyncArgs;
+                ReceiveAsyncPaused = false;
+                ReceiveAsyncArgs = null;
+
+                var bytesTransferred = TakeInput(new ArraySegment<byte>(args.Buffer, args.Offset, args.Count));
+                SetField(args, "m_BytesTransferred", bytesTransferred);
+                SetField(args, "m_SocketError", SocketError.Success);
+                return (ContextCallback)GetField(args, "m_ExecutionCallback");
+            }
+        }
+
+
+        // ISocket follows
+
+        public bool Blocking { get; set; }
+
+        public bool Connected { get; private set; }
+
+
         public int Receive(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode)
         {
-            if (Paused)
-                throw new InvalidOperationException("FakeSocket.Receive cannot be called when ReceivePaused is true");
-
-            if (_input.Count == 0)
+            lock (_receiveLock)
             {
-                errorCode = SocketError.WouldBlock;
-                return 0;
-            }
+                if (ReceiveAsyncPaused)
+                    throw new InvalidOperationException("FakeSocket.Receive cannot be called when ReceiveCalled is true");
 
-            var bytesTransferred = Math.Min(size, _input.Count);
-            Array.Copy(_input.Array, _input.Offset, buffer, offset, bytesTransferred);
-            _input = new ArraySegment<byte>(
-                _input.Array, 
-                _input.Offset + bytesTransferred, 
-                _input.Count - bytesTransferred);
-            errorCode = SocketError.Success;
-            return bytesTransferred;
+                var bytesTransferred = TakeInput(new ArraySegment<byte>(buffer, offset, size));
+                errorCode = bytesTransferred == 0 ? SocketError.WouldBlock : SocketError.Success;
+                return bytesTransferred;
+            }
         }
 
         public bool ReceiveAsync(SocketAsyncEventArgs e)
         {
-            if (Paused)
-                throw new InvalidOperationException("FakeSocket.Receive cannot be called when ReceivePaused is true");
+            lock (_receiveLock)
+            {
+                if (ReceiveAsyncPaused)
+                    throw new InvalidOperationException("FakeSocket.Receive cannot be called when ReceiveCalled is true");
 
-            Paused = true;
-            ReceivePausedArgs = e;
-            ThreadPool.QueueUserWorkItem(_ => Add(""));
-            return true;
+                ReceiveAsyncPaused = true;
+                ReceiveAsyncArgs = e;
+                return TryReceiveAsync() == null;
+            }
         }
 
         private static void SetField(object obj, string fieldName, object fieldValue)
@@ -114,17 +147,26 @@ namespace Dragonfly.Tests.Fakes
 
         public int Send(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode)
         {
-            _output = Combine(_output, new ArraySegment<byte>(buffer, offset, size));
-            errorCode = SocketError.Success;
-            return size;
+            lock (_sendLock)
+            {
+                var byteTransfered = GiveOutput(new ArraySegment<byte>(buffer, offset, size));
+                errorCode = byteTransfered == 0 ? SocketError.Success : SocketError.WouldBlock;
+                return byteTransfered;
+            }
         }
+
 
         public bool SendAsync(SocketAsyncEventArgs e)
         {
-            _output = Combine(_output, new ArraySegment<byte>(e.Buffer, e.Offset, e.Count));
-            SetField(e, "m_SocketError", SocketError.Success);
-            SetField(e, "m_BytesTransferred", e.Count);
-            return false;
+            lock (_sendLock)
+            {
+                var byteTransfered = GiveOutput(new ArraySegment<byte>(e.Buffer, e.Offset, e.Count));
+                var errorCode = byteTransfered == 0 ? SocketError.WouldBlock : SocketError.Success;
+
+                SetField(e, "m_SocketError", errorCode);
+                SetField(e, "m_BytesTransferred", byteTransfered);
+                return false;
+            }
         }
 
         public void WaitToSend()
@@ -134,12 +176,25 @@ namespace Dragonfly.Tests.Fakes
 
         public void Shutdown(SocketShutdown how)
         {
-            throw new NotImplementedException();
+            switch(how)
+            {
+                case SocketShutdown.Send:
+                    ShutdownSendCalled = true;
+                    break;
+                case SocketShutdown.Receive:
+                    ShutdownReceiveCalled = true;
+                    break;
+                case SocketShutdown.Both:
+                    ShutdownSendCalled = true;
+                    ShutdownReceiveCalled = true;
+                    break;
+            }
         }
 
         public bool DisconnectAsync(SocketAsyncEventArgs e)
         {
-            throw new NotImplementedException();
+            DisconnectCalled = true;
+            return false;
         }
 
         public void Close()

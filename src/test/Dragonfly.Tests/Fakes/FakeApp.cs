@@ -14,10 +14,16 @@ namespace Dragonfly.Tests.Fakes
             ResponseStatus = "200 OK";
             ResponseHeaders = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
             ResponseBody = new FakeResponseBody();
+            OptionReadRequestBody = false;
+            OptionCallResultImmediately = true;
         }
 
         public int CallCount { get; set; }
         public IDictionary<string, object> Env { get; set; }
+        public ResultDelegate ResultCallback { get; set; }
+        public Action<Exception> FaultCallback { get; set; }
+
+        
         public IDictionary<string, IEnumerable<string>> RequestHeaders { get; set; }
         public FakeRequestBody RequestBody { get; set; }
 
@@ -26,27 +32,46 @@ namespace Dragonfly.Tests.Fakes
         public FakeResponseBody ResponseBody { get; set; }
 
         public bool OptionReadRequestBody { get; set; }
+        public bool OptionCallResultImmediately { get; set; }
 
 
         public void Call(IDictionary<string, object> env, ResultDelegate result, Action<Exception> fault)
         {
             CallCount += 1;
+            
             Env = env;
+            ResultCallback = result;
+            FaultCallback = fault;
+
             RequestHeaders = (IDictionary<string, IEnumerable<string>>)env["owin.RequestHeaders"];
             RequestBody = new FakeRequestBody((BodyDelegate)env["owin.RequestBody"]);
 
-            if (OptionReadRequestBody)
+            if (OptionCallResultImmediately)
             {
-                RequestBody.Subscribe(
-                    (data, continuation) => false,
-                    fault,
-                    () => result(ResponseStatus, ResponseHeaders, ResponseBody.Subscribe));
+                if (OptionReadRequestBody)
+                {
+                    RequestBody.Subscribe(
+                        (data, continuation) => false,
+                        fault,
+                        () => result(ResponseStatus, ResponseHeaders, ResponseBody.Subscribe));
+                }
+                else if (OptionCallResultImmediately)
+                {
+                    result(ResponseStatus, ResponseHeaders, ResponseBody.Subscribe);
+                }
             }
             else
             {
-                result(ResponseStatus, ResponseHeaders, ResponseBody.Subscribe);
+                if (OptionReadRequestBody)
+                {
+                    RequestBody.Subscribe(
+                        (data, continuation) => false,
+                        fault,
+                        () => { });
+                }
             }
         }
+
 
 
         public string RequestHeader(string name)
