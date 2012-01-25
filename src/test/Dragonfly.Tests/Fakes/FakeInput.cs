@@ -13,10 +13,7 @@ namespace Dragonfly.Tests.Fakes
     {
         public FakeInput()
         {
-            Baton = new Baton
-                        {
-                            Buffer = new ArraySegment<byte>(new byte[1024], 0, 0),
-                        };
+            Baton = new Baton(new FakeMemoryPool());
             WaitHandle = new ManualResetEvent(false);
             Encoding = Encoding.UTF8;
         }
@@ -41,6 +38,7 @@ namespace Dragonfly.Tests.Fakes
             if (Paused)
                 throw new InvalidOperationException("FakeInput.Add cannot be called when Paused is true");
 
+            Baton.Available(Encoding.GetByteCount(text));
             var count = Encoding.GetBytes(text, 0, text.Length, Baton.Buffer.Array, Baton.Buffer.Offset + Baton.Buffer.Count);
             Assert.Equal(text.Length, count);
             Baton.Buffer = new ArraySegment<byte>(

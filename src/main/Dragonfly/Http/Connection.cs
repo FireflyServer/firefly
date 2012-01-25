@@ -9,7 +9,7 @@ namespace Dragonfly.Http
 {
     public class Connection : IAsyncResult
     {
-        private readonly IServerTrace _trace;
+        private readonly IDragonflyServices _services;
         private readonly AppDelegate _app;
         private readonly ISocket _socket;
         private readonly Action<ISocket> _disconnected;
@@ -21,9 +21,9 @@ namespace Dragonfly.Http
         private Action _frameConsumeCallback;
         private SocketAsyncEventArgs _socketReceiveAsyncEventArgs;
 
-        public Connection(IServerTrace trace, AppDelegate app, ISocket socket, Action<ISocket> disconnected)
+        public Connection(IDragonflyServices services, AppDelegate app, ISocket socket, Action<ISocket> disconnected)
         {
-            _trace = trace;
+            _services = services;
             _app = app;
             _socket = socket;
             _disconnected = disconnected;
@@ -31,12 +31,9 @@ namespace Dragonfly.Http
 
         public void Execute()
         {
-            _trace.Event(TraceEventType.Start, TraceMessage.Connection);
+            _services.Trace.Event(TraceEventType.Start, TraceMessage.Connection);
 
-            _baton = new Baton
-                         {
-                             Buffer = new ArraySegment<byte>(new byte[1024], 0, 0)
-                         };
+            _baton = new Baton(_services.Memory);
 
             _fault = ex =>
                          {
@@ -44,7 +41,7 @@ namespace Dragonfly.Http
                          };
 
             _socketReceiveAsyncEventArgs = new SocketAsyncEventArgs();
-            _socketReceiveAsyncEventArgs.SetBuffer(new byte[0], 0, 0);
+            _socketReceiveAsyncEventArgs.SetBuffer(_services.Memory.Empty, 0, 0);
             _socketReceiveAsyncEventArgs.Completed +=
                 (_, __) =>
                 {
@@ -112,6 +109,7 @@ namespace Dragonfly.Http
 
                 if (recvError == SocketError.WouldBlock)
                 {
+                    _baton.Free();
                     if (_socket.ReceiveAsync(_socketReceiveAsyncEventArgs))
                         return;
 
@@ -145,6 +143,13 @@ namespace Dragonfly.Http
 
         private bool ProduceData(ArraySegment<byte> data, Action callback)
         {
+            // Rogue value implies shutdown send (used for 1.0 clients)
+            if (data.Array == null)
+            {
+                _socket.Shutdown(SocketShutdown.Send);
+                return false;
+            }
+
             if (callback == null)
             {
                 DoProduce(data);
@@ -164,7 +169,7 @@ namespace Dragonfly.Http
                 var sent = _socket.Send(remaining.Array, remaining.Offset, remaining.Count, SocketFlags.None, out errorCode);
                 if (errorCode != SocketError.Success)
                 {
-                    _trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
+                    _services.Trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
                     break;
                 }
                 if (sent == remaining.Count)
@@ -196,7 +201,7 @@ namespace Dragonfly.Http
                     {
                         if (asyncInfo.SocketError != SocketError.Success)
                         {
-                            _trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
+                            _services.Trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
                             callback();
                             return;
                         }
@@ -222,7 +227,7 @@ namespace Dragonfly.Http
                 }
                 if (info.SocketError != SocketError.Success)
                 {
-                    _trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
+                    _services.Trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
                     break;
                 }
                 if (info.BytesSent == remaining.Count)
@@ -260,32 +265,39 @@ namespace Dragonfly.Http
             return new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError };
         }
 
-        private void ProduceEnd(bool keepAlive)
+        private void ProduceEnd(ProduceEndType endType)
         {
-            if (keepAlive)
+            switch (endType)
             {
-                ThreadPool.QueueUserWorkItem(_ => Go(true));
-                return;
-            }
+                case ProduceEndType.SocketShutdownSend:
+                    _socket.Shutdown(SocketShutdown.Send);
+                    break;
+                case ProduceEndType.ConnectionKeepAlive:
+                    ThreadPool.QueueUserWorkItem(_ => Go(true));
+                    break;
+                case ProduceEndType.SocketDisconnect:
+                    _services.Trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+                    
+                    _baton.Free();
+                    
+                    _socketReceiveAsyncEventArgs.Dispose();
+                    _socketReceiveAsyncEventArgs = null;
+                    _socket.Shutdown(SocketShutdown.Receive);
 
-            _trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+                    var e = new SocketAsyncEventArgs();
+                    Action cleanup =
+                        () =>
+                        {
+                            e.Dispose();
+                            _disconnected(_socket);
+                        };
 
-            _socketReceiveAsyncEventArgs.Dispose();
-            _socketReceiveAsyncEventArgs = null;
-            _socket.Shutdown(SocketShutdown.Receive);
-
-            var e = new SocketAsyncEventArgs();
-            Action cleanup =
-                () =>
-                {
-                    e.Dispose();
-                    _disconnected(_socket);
-                };
-
-            e.Completed += (_, __) => cleanup();
-            if (!_socket.DisconnectAsync(e))
-            {
-                cleanup();
+                    e.Completed += (_, __) => cleanup();
+                    if (!_socket.DisconnectAsync(e))
+                    {
+                        cleanup();
+                    }
+                    break;
             }
         }
 

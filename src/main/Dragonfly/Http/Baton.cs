@@ -1,10 +1,19 @@
 ﻿using System;
 using System.Diagnostics;
+using Dragonfly.Utils;
 
 namespace Dragonfly.Http
 {
     public class Baton
     {
+        private readonly IMemoryPool _memory;
+
+        public Baton(IMemoryPool memory)
+        {
+            _memory = memory;
+            Buffer = new ArraySegment<byte>(_memory.Empty, 0, 0);
+        }
+
         public ArraySegment<byte> Buffer { get; set; }
         public bool RemoteIntakeFin { get; set; }
 
@@ -21,6 +30,15 @@ namespace Dragonfly.Http
             return taken;
         }
 
+        public void Free()
+        {
+            if (Buffer.Count == 0 && Buffer.Array.Length != 0)
+            {
+                _memory.Free(Buffer.Array);
+                Buffer = new ArraySegment<byte>(_memory.Empty, 0, 0);
+            }
+        }
+
         public ArraySegment<byte> Available(int minimumSize)
         {
             if (Buffer.Count == 0 && Buffer.Offset != 0)
@@ -33,13 +51,21 @@ namespace Dragonfly.Http
                 if (availableSize + Buffer.Offset >= minimumSize)
                 {
                     Array.Copy(Buffer.Array, Buffer.Offset, Buffer.Array, 0, Buffer.Count);
-                    Buffer = new ArraySegment<byte>(Buffer.Array, 0, Buffer.Count);
+                    if (Buffer.Count != 0)
+                    {
+                        Buffer = new ArraySegment<byte>(Buffer.Array, 0, Buffer.Count);
+                    }
                     availableSize = Buffer.Array.Length - Buffer.Offset - Buffer.Count;
                 }
                 else
                 {
-                    var larger = new ArraySegment<byte>(new byte[Buffer.Array.Length * 2 + minimumSize], 0, Buffer.Count);
-                    Array.Copy(Buffer.Array, Buffer.Offset, larger.Array, 0, Buffer.Count);
+                    var largerSize = Buffer.Array.Length + Math.Max(Buffer.Array.Length, minimumSize);
+                    var larger = new ArraySegment<byte>(_memory.Alloc(largerSize), 0, Buffer.Count);
+                    if (Buffer.Count != 0)
+                    {
+                        Array.Copy(Buffer.Array, Buffer.Offset, larger.Array, 0, Buffer.Count);
+                    } 
+                    _memory.Free(Buffer.Array);
                     Buffer = larger;
                     availableSize = Buffer.Array.Length - Buffer.Offset - Buffer.Count;
                 }

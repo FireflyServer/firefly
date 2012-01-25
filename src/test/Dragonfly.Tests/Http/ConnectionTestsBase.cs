@@ -19,7 +19,7 @@ namespace Dragonfly.Tests.Http
         {
             App = new FakeApp();
             Socket = new FakeSocket();
-            Connection = new Connection(new FakeTrace(), App.Call, Socket, OnDisconnected);
+            Connection = new Connection(new FakeServices(), App.Call, Socket, OnDisconnected);
             DisconnectedEvent = new ManualResetEvent(false);
         }
 

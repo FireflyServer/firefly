@@ -12,15 +12,22 @@ namespace Dragonfly.Http
 {
     public class ServerFactory
     {
-        private readonly IServerTrace _trace = NullServerTrace.Instance;
+        private readonly IDragonflyServices _services;
 
         public ServerFactory()
+            : this(new DragonflyServices())
         {
         }
 
         public ServerFactory(IServerTrace trace)
+            : this(new DragonflyServices { Trace = trace })
         {
-            _trace = trace;
+
+        }
+
+        public ServerFactory(IDragonflyServices services)
+        {
+            _services = services;            
         }
 
         public IDisposable Create(AppDelegate app, int port)
@@ -35,7 +42,7 @@ namespace Dragonfly.Http
 
         public IDisposable Create(AppDelegate app, EndPoint endpoint)
         {
-            _trace.Event(TraceEventType.Start, TraceMessage.ServerFactory);
+            _services.Trace.Event(TraceEventType.Start, TraceMessage.ServerFactory);
 
             var listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
             listenSocket.Bind(endpoint);
@@ -43,7 +50,7 @@ namespace Dragonfly.Http
 
             WaitCallback connectionExecute = connection =>
             {
-                _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryConnectionExecute);
+                _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryConnectionExecute);
                 ((Connection)connection).Execute();
             };
 
@@ -54,16 +61,16 @@ namespace Dragonfly.Http
                 {
                     while (!stop)
                     {
-                        _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptAsync);
+                        _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptAsync);
 
                         if (listenSocket.AcceptAsync(acceptEvent))
                             return;
 
-                        _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedSync);
+                        _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedSync);
 
                         if (acceptEvent.SocketError != SocketError.Success)
                         {
-                            _trace.Event(TraceEventType.Error, TraceMessage.ServerFactoryAcceptSocketError);
+                            _services.Trace.Event(TraceEventType.Error, TraceMessage.ServerFactoryAcceptSocketError);
                         }
 
                         if (acceptEvent.SocketError == SocketError.Success &&
@@ -72,9 +79,9 @@ namespace Dragonfly.Http
                             ThreadPool.QueueUserWorkItem(
                                 connectionExecute,
                                 new Connection(
-                                    _trace, 
-                                    app, 
-                                    new SocketWrapper(acceptEvent.AcceptSocket), 
+                                    _services,
+                                    app,
+                                    new SocketWrapper(acceptEvent.AcceptSocket),
                                     OnDisconnect));
                         }
                         acceptEvent.AcceptSocket = null;
@@ -83,17 +90,17 @@ namespace Dragonfly.Http
             acceptEvent.Completed +=
                 (_, __) =>
                 {
-                    _trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedAsync);
+                    _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedAsync);
 
                     if (acceptEvent.SocketError == SocketError.Success &&
                         acceptEvent.AcceptSocket != null)
                     {
                         ThreadPool.QueueUserWorkItem(
-                            connectionExecute, 
+                            connectionExecute,
                             new Connection(
-                                _trace, 
-                                app, 
-                                new SocketWrapper(acceptEvent.AcceptSocket), 
+                                _services,
+                                app,
+                                new SocketWrapper(acceptEvent.AcceptSocket),
                                 OnDisconnect));
                     }
                     acceptEvent.AcceptSocket = null;
@@ -104,7 +111,7 @@ namespace Dragonfly.Http
             return new Disposable(
                 () =>
                 {
-                    _trace.Event(TraceEventType.Stop, TraceMessage.ServerFactory);
+                    _services.Trace.Event(TraceEventType.Stop, TraceMessage.ServerFactory);
 
                     stop = true;
                     listenSocket.Close();

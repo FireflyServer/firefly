@@ -50,10 +50,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Fakes\FakeApp.cs" />
+    <Compile Include="Fakes\FakeMemoryPool.cs" />
     <Compile Include="Fakes\FakeResponseBody.cs" />
     <Compile Include="Fakes\FakeInput.cs" />
     <Compile Include="Fakes\FakeOutput.cs" />
     <Compile Include="Fakes\FakeRequestBody.cs" />
+    <Compile Include="Fakes\FakeServices.cs" />
     <Compile Include="Fakes\FakeSocket.cs" />
     <Compile Include="Fakes\FakeTrace.cs" />
     <Compile Include="Http\BatonTests.cs" />

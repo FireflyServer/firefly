@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Dragonfly.Http;
 
 namespace Dragonfly.Tests.Fakes
 {
@@ -20,13 +21,21 @@ namespace Dragonfly.Tests.Fakes
             return false;
         }
 
-        public void ProduceEnd(bool keepAlive)
+        public void ProduceEnd(ProduceEndType produceEndType)
         {
-            Ended = true;
-            KeepAlive = keepAlive;
+            if (produceEndType == ProduceEndType.SocketShutdownSend)
+                ShutdownSend = true;
+            else
+                Ended = true;
+
+            if (produceEndType == ProduceEndType.ConnectionKeepAlive)
+                KeepAlive = true;
+            else if (produceEndType == ProduceEndType.SocketDisconnect)
+                KeepAlive = false;
         }
 
 
+        public bool ShutdownSend { get; set; }
         public bool Ended { get; set; }
         public bool KeepAlive { get; set; }
         public MemoryStream MemoryStream { get; set; }

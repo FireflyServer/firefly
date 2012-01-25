@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Dragonfly.Http;
+using Dragonfly.Utils;
 
 namespace Profile.HeaderParser
 {
@@ -54,7 +55,7 @@ namespace Profile.HeaderParser
                             {
                                 var strat = measure.Strat();
 
-                                var baton = new Baton
+                                var baton = new Baton(new MemoryPool())
                                                 {
                                                     Buffer = new ArraySegment<byte>(data),
                                                     RemoteIntakeFin = false,

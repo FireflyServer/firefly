@@ -8,11 +8,18 @@ using Gate.Owin;
 
 namespace Dragonfly.Http
 {
+    public enum ProduceEndType
+    {
+        SocketShutdownSend,
+        SocketDisconnect,
+        ConnectionKeepAlive,
+    }
+
     public class Frame
     {
         private readonly AppDelegate _app;
         private readonly Func<ArraySegment<byte>, Action, bool> _produceData;
-        private readonly Action _produceEnd;
+        private readonly Action<ProduceEndType> _produceEnd;
 
         Mode _mode;
         enum Mode
@@ -33,15 +40,11 @@ namespace Dragonfly.Http
         private bool _resultStarted;
         private bool _keepAlive;
 
-        public Frame(AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action<bool> produceEnd)
+        public Frame(AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action<ProduceEndType> produceEnd)
         {
             _app = app;
             _produceData = produceData;
-            _produceEnd = () =>
-            {
-                if (!_messageBody.Drain(() => produceEnd(_keepAlive)))
-                    produceEnd(_keepAlive);
-            };
+            _produceEnd = produceEnd;
         }
 
         public bool LocalIntakeFin
@@ -100,6 +103,7 @@ namespace Dragonfly.Http
                             });
                         _keepAlive = _messageBody.RequestKeepAlive;
                         _mode = Mode.MessageBody;
+                        baton.Free();
                         Execute();
                         return true;
 
@@ -146,24 +150,36 @@ namespace Dragonfly.Http
                 {
                     _resultStarted = true;
 
-                    Action sendResponseBody =
-                        () => body(
-                            _produceData,
-                            ex => _produceEnd(),
-                            () => _produceEnd());
-
-                    if (!_produceData(CreateResponseHeader(status, headers), sendResponseBody))
-                        sendResponseBody.Invoke();
+                    if (!_produceData(
+                        CreateResponseHeader(status, headers), 
+                        () => body(_produceData, ProduceEnd, ProduceEnd)))
+                    {
+                        body(_produceData, ProduceEnd, ProduceEnd);
+                    }
                 },
-                ex => _produceEnd());
+                ProduceEnd);
 
             return;
+        }
+
+        private void ProduceEnd(Exception ex)
+        {
+            ProduceEnd();
+        }
+
+        private void ProduceEnd()
+        {
+            if (!_keepAlive)
+                _produceEnd(ProduceEndType.SocketShutdownSend);
+
+            if (!_messageBody.Drain(() => _produceEnd(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect)))
+                _produceEnd(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect);
         }
 
         private ArraySegment<byte> CreateResponseHeader(string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
         {
             var sb = new StringBuilder(128);
-            sb.Append("HTTP/1.1 ").AppendLine(status);
+            sb.Append(_httpVersion).Append(" ").AppendLine(status);
 
             var hasConnection = false;
             var hasTransferEncoding = false;

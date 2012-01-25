@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Dragonfly.Http;
+using Dragonfly.Tests.Fakes;
+using Dragonfly.Utils;
 using Xunit;
 
 namespace Dragonfly.Tests.Http
@@ -13,7 +15,7 @@ namespace Dragonfly.Tests.Http
         public void SkipAdvancesBuffer()
         {
             // Arrange
-            var baton = new Baton {Buffer = "xxhello world".ToArraySegment()};
+            var baton = new Baton(new FakeMemoryPool()) {Buffer = "xxhello world".ToArraySegment()};
             baton.Skip(2);
 
             // Act
@@ -28,7 +30,7 @@ namespace Dragonfly.Tests.Http
         public void TakeAdvancesBufferAndReturnsTakenSegment()
         {
             // Arrange
-            var baton = new Baton { Buffer = "xxhello world".ToArraySegment() };
+            var baton = new Baton(new FakeMemoryPool()) { Buffer = "xxhello world".ToArraySegment() };
             baton.Skip(2);
 
             // Act
@@ -46,7 +48,7 @@ namespace Dragonfly.Tests.Http
         public void ExtendCausesArraySegmentToIncludeMoreBytesAtTheEnd()
         {
             // Arrange
-            var baton = new Baton { Buffer = "xxhello worldxx".ToArraySegment() };
+            var baton = new Baton(new FakeMemoryPool()) { Buffer = "xxhello worldxx".ToArraySegment() };
             baton.Buffer = new ArraySegment<byte>(baton.Buffer.Array, 2, 5);
 
             // Act
@@ -65,7 +67,7 @@ namespace Dragonfly.Tests.Http
         public void AvailableBufferReturnsAreaThatIsUnused()
         {
             // Arrange
-            var baton = new Baton { Buffer = "xxhello worldxx".ToArraySegment() };
+            var baton = new Baton(new FakeMemoryPool()) { Buffer = "xxhello worldxx".ToArraySegment() };
             baton.Buffer = new ArraySegment<byte>(baton.Buffer.Array, 2, 5);
 
             // Act
@@ -80,7 +82,7 @@ namespace Dragonfly.Tests.Http
         public void AvailableBufferBringsOffsetBackToZeroIfOccupiedSegmentIsZeroLength()
         {
             // Arrange
-            var baton = new Baton { Buffer = "xxhello worldxx".ToArraySegment() };
+            var baton = new Baton(new FakeMemoryPool()) { Buffer = "xxhello worldxx".ToArraySegment() };
             baton.Buffer = new ArraySegment<byte>(baton.Buffer.Array, 2, 0);
 
             // Act
