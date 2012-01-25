@@ -15,7 +15,7 @@ namespace Dragonfly.Utils
         public bool Blocking
         {
             get { return _socket.Blocking; }
-            set { _socket.Blocking = true; }
+            set { _socket.Blocking = value; }
         }
 
         public bool Connected
