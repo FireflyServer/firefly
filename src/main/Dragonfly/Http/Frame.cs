@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using Dragonfly.Utils;
 using Gate.Owin;
 
 // ReSharper disable AccessToModifiedClosure
@@ -17,6 +19,7 @@ namespace Dragonfly.Http
 
     public class Frame
     {
+        private readonly IDragonflyServices _services;
         private readonly AppDelegate _app;
         private readonly Func<ArraySegment<byte>, Action, bool> _produceData;
         private readonly Action<ProduceEndType> _produceEnd;
@@ -40,8 +43,9 @@ namespace Dragonfly.Http
         private bool _resultStarted;
         private bool _keepAlive;
 
-        public Frame(AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action<ProduceEndType> produceEnd)
+        public Frame(IDragonflyServices services, AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action<ProduceEndType> produceEnd)
         {
+            _services = services;
             _app = app;
             _produceData = produceData;
             _produceEnd = produceEnd;
@@ -149,13 +153,21 @@ namespace Dragonfly.Http
                 (status, headers, body) =>
                 {
                     _resultStarted = true;
+                    var responseHeader = CreateResponseHeader(status, headers);
 
-                    if (!_produceData(
-                        CreateResponseHeader(status, headers), 
-                        () => body(_produceData, ProduceEnd, ProduceEnd)))
+                    if (_produceData(
+                        responseHeader.Item1,
+                        () =>
+                        {
+                            responseHeader.Item2.Dispose();
+                            body(_produceData, ProduceEnd, ProduceEnd);
+                        }))
                     {
-                        body(_produceData, ProduceEnd, ProduceEnd);
+                        return;
                     }
+
+                    responseHeader.Item2.Dispose();
+                    body(_produceData, ProduceEnd, ProduceEnd);
                 },
                 ProduceEnd);
 
@@ -176,10 +188,14 @@ namespace Dragonfly.Http
                 _produceEnd(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect);
         }
 
-        private ArraySegment<byte> CreateResponseHeader(string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
+        private Tuple<ArraySegment<byte>, IDisposable> CreateResponseHeader(string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
         {
-            var sb = new StringBuilder(128);
-            sb.Append(_httpVersion).Append(" ").AppendLine(status);
+            var writer = new MemoryPoolTextWriter(_services.Memory);
+            writer.Write(_httpVersion);
+            writer.Write(' ');
+            writer.Write(status);
+            writer.Write('\r');
+            writer.Write('\n');
 
             var hasConnection = false;
             var hasTransferEncoding = false;
@@ -207,7 +223,13 @@ namespace Dragonfly.Http
 
                     foreach (var value in header.Value)
                     {
-                        sb.Append(header.Key).Append(": ").Append(value).Append("\r\n");
+                        writer.Write(header.Key);
+                        writer.Write(':');
+                        writer.Write(' ');
+                        writer.Write(value);
+                        writer.Write('\r');
+                        writer.Write('\n');
+
                         if (isConnection && value.IndexOf("close", StringComparison.OrdinalIgnoreCase) != -1)
                         {
                             _keepAlive = false;
@@ -222,11 +244,15 @@ namespace Dragonfly.Http
             }
             if (_keepAlive == false && hasConnection == false)
             {
-                sb.Append("Connection: close\r\n");
+                writer.Write("Connection: close\r\n\r\n");
             }
-
-            sb.Append("\r\n");
-            return new ArraySegment<byte>(Encoding.Default.GetBytes(sb.ToString()));
+            else
+            {
+                writer.Write('\r');
+                writer.Write('\n');
+            }
+            writer.Flush();
+            return new Tuple<ArraySegment<byte>, IDisposable>(writer.Buffer, writer);
         }
 
         private bool TakeStartLine(Baton baton)

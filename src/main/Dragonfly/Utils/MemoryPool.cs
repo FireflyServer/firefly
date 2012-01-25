@@ -7,20 +7,43 @@ namespace Dragonfly.Utils
     {
         static readonly byte[] EmptyArray = new byte[0];
 
-        readonly Stack<byte[]> _pool = new Stack<byte[]>();
-        readonly object _poolSync = new object();
-        private const int PoolLimit = 256;
+        class Pool<T>
+        {
+            readonly Stack<T[]> _stack = new Stack<T[]>();
+            readonly object _sync = new object();
 
-        readonly Stack<byte[]> _pool2 = new Stack<byte[]>();
-        readonly object _pool2Sync = new object();
-        private const int Pool2Limit = 64;
+            public T[] Alloc(int size)
+            {
+                lock (_sync)
+                {
+                    if (_stack.Count != 0)
+                        return _stack.Pop();
+                }
+                return new T[size];
+            }
+
+            public void Free(T[] value, int limit)
+            {
+                lock (_sync)
+                {
+                    if (_stack.Count < limit)
+                    {
+                        _stack.Push(value);
+                    }
+                }
+            }
+        }
+
+        readonly Pool<byte> _pool1 = new Pool<byte>();
+        readonly Pool<byte> _pool2 = new Pool<byte>();
+        readonly Pool<char> _pool3 = new Pool<char>();
 
         public byte[] Empty
         {
             get { return EmptyArray; }
         }
 
-        public byte[] Alloc(int minimumSize)
+        public byte[] AllocByte(int minimumSize)
         {
             if (minimumSize == 0)
             {
@@ -28,47 +51,49 @@ namespace Dragonfly.Utils
             }
             if (minimumSize <= 1024)
             {
-                lock (_poolSync)
-                {
-                    if (_pool.Count != 0)
-                        return _pool.Pop();
-                }
-                return new byte[1024];
+                return _pool1.Alloc(1024);
             }
             if (minimumSize <= 2048)
             {
-                lock (_pool2Sync)
-                {
-                    if (_pool2.Count != 0)
-                        return _pool2.Pop();
-                }
-                return new byte[2048];
+                return _pool2.Alloc(2048);
             }
             return new byte[minimumSize];
         }
 
-        public void Free(byte[] memory)
+        public void FreeByte(byte[] memory)
         {
             if (memory == null) return;
             switch (memory.Length)
             {
                 case 1024:
-                    lock(_poolSync)
-                    {
-                        if (_pool.Count < PoolLimit)
-                        {
-                            _pool.Push(memory);
-                        }
-                    }
+                    _pool1.Free(memory, 256);
                     break;
                 case 2048:
-                    lock (_pool2Sync)
-                    {
-                        if (_pool2.Count < Pool2Limit)
-                        {
-                            _pool2.Push(memory);
-                        }
-                    }
+                    _pool2.Free(memory, 64);
+                    break;
+            }
+        }
+
+        public char[] AllocChar(int minimumSize)
+        {
+            if (minimumSize == 0)
+            {
+                return new char[0];
+            }
+            if (minimumSize <= 128)
+            {
+                return _pool3.Alloc(128);
+            }
+            return new char[minimumSize];
+        }
+
+        public void FreeChar(char[] memory)
+        {
+            if (memory == null) return;
+            switch (memory.Length)
+            {
+                case 128:
+                    _pool3.Free(memory, 256);
                     break;
             }
         }

@@ -10,13 +10,38 @@ namespace Dragonfly.Tests.Fakes
             get { return new byte[0]; }
         }
 
-        public byte[] Alloc(int minimumSize)
+        public int AllocByteCount { get; set; }
+        public int FreeByteCount { get; set; }
+        public int AllocCharCount { get; set; }
+        public int FreeCharCount { get; set; }
+
+
+        public byte[] AllocByte(int minimumSize)
         {
+            ++AllocByteCount;
             return new byte[minimumSize];
         }
 
-        public void Free(byte[] memory)
-        {            
+        public void FreeByte(byte[] memory)
+        {
+            if (memory != null && memory.Length != 0)
+            {
+                ++FreeByteCount;
+            }
+        }
+
+        public char[] AllocChar(int minimumSize)
+        {
+            ++AllocCharCount;
+            return new char[minimumSize];
+        }
+
+        public void FreeChar(char[] memory)
+        {
+            if (memory != null && memory.Length != 0)
+            {
+                ++FreeCharCount;
+            }
         }
     }
 }

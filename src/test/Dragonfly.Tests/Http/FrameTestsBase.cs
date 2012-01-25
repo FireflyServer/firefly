@@ -6,6 +6,7 @@ namespace Dragonfly.Tests.Http
 {
     public class FrameTestsBase
     {
+        protected readonly FakeServices Services;
         protected readonly FakeApp App;
         protected readonly FakeOutput Output;
         protected readonly FakeInput Input;
@@ -13,10 +14,11 @@ namespace Dragonfly.Tests.Http
 
         public FrameTestsBase()
         {
+            Services = new FakeServices();
             App = new FakeApp();
             Output = new FakeOutput();
             Input = new FakeInput();
-            Frame = new Frame(App.Call, Output.ProduceData, Output.ProduceEnd);
+            Frame = new Frame(Services, App.Call, Output.ProduceData, Output.ProduceEnd);
             Input.Consume = Frame.Consume;
         }
 

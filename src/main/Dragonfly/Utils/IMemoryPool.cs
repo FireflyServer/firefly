@@ -3,7 +3,11 @@
     public interface IMemoryPool
     {
         byte[] Empty { get; }
-        byte[] Alloc(int minimumSize);
-        void Free(byte[] memory);
+
+        byte[] AllocByte(int minimumSize);
+        void FreeByte(byte[] memory);
+
+        char[] AllocChar(int minimumSize);
+        void FreeChar(char[] memory);
     }
 }

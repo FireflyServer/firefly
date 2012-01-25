@@ -34,7 +34,7 @@ namespace Dragonfly.Http
         {
             if (Buffer.Count == 0 && Buffer.Array.Length != 0)
             {
-                _memory.Free(Buffer.Array);
+                _memory.FreeByte(Buffer.Array);
                 Buffer = new ArraySegment<byte>(_memory.Empty, 0, 0);
             }
         }
@@ -60,12 +60,12 @@ namespace Dragonfly.Http
                 else
                 {
                     var largerSize = Buffer.Array.Length + Math.Max(Buffer.Array.Length, minimumSize);
-                    var larger = new ArraySegment<byte>(_memory.Alloc(largerSize), 0, Buffer.Count);
+                    var larger = new ArraySegment<byte>(_memory.AllocByte(largerSize), 0, Buffer.Count);
                     if (Buffer.Count != 0)
                     {
                         Array.Copy(Buffer.Array, Buffer.Offset, larger.Array, 0, Buffer.Count);
                     } 
-                    _memory.Free(Buffer.Array);
+                    _memory.FreeByte(Buffer.Array);
                     Buffer = larger;
                     availableSize = Buffer.Array.Length - Buffer.Offset - Buffer.Count;
                 }

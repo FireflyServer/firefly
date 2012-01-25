@@ -83,7 +83,7 @@ namespace Dragonfly.Http
         {
             if (newFrame)
             {
-                _frame = new Frame(_app, ProduceData, ProduceEnd);
+                _frame = new Frame(_services, _app, ProduceData, ProduceEnd);
                 if (_baton.Buffer.Count != 0)
                 {
                     if (_frame.Consume(
