@@ -15,7 +15,7 @@ namespace HelloWorld
             var server = new ServerFactory();
             using (server.Create(App, 8080))
             {
-                Console.WriteLine("Running server on http://localhost:8008/");
+                Console.WriteLine("Running server on http://localhost:8080/");
                 Console.WriteLine("Press enter to exit");
                 Console.ReadLine();
             }
