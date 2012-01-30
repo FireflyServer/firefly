@@ -74,7 +74,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\main\Dragonfly\Firefly.csproj">
+    <ProjectReference Include="..\..\main\Firefly\Firefly.csproj">
       <Project>{CA805DDB-E41D-42A0-AF7E-2388E2670663}</Project>
       <Name>Firefly</Name>
     </ProjectReference>

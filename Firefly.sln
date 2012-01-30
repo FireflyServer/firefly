@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloWorld", "src\sample\HelloWorld\HelloWorld.csproj", "{2087B5A3-5A02-4F6C-AB54-BDB96D32C291}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Firefly", "src\main\Dragonfly\Firefly.csproj", "{CA805DDB-E41D-42A0-AF7E-2388E2670663}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Firefly", "src\main\Firefly\Firefly.csproj", "{CA805DDB-E41D-42A0-AF7E-2388E2670663}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Firefly.Tests", "src\test\Dragonfly.Tests\Firefly.Tests.csproj", "{043474E8-309A-42EB-904B-F570EA10E82D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Firefly.Tests", "src\test\Firefly.Tests\Firefly.Tests.csproj", "{043474E8-309A-42EB-904B-F570EA10E82D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sandbox", "src\sample\Sandbox\Sandbox.csproj", "{4A484DEF-B640-468C-A7FB-B8602D1180A8}"
 EndProject
