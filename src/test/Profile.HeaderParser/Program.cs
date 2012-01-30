@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Dragonfly.Http;
-using Dragonfly.Utils;
+using Firefly.Http;
+using Firefly.Utils;
 
 namespace Profile.HeaderParser
 {

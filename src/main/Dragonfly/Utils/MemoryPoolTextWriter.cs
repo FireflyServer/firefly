@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text;
 
-namespace Dragonfly.Utils
+namespace Firefly.Utils
 {
     public class MemoryPoolTextWriter : TextWriter
     {

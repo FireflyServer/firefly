@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Dragonfly.Utils
+namespace Firefly.Utils
 {
     class NullServerTrace : IServerTrace
     {

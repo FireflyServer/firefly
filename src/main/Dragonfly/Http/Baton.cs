@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
-using Dragonfly.Utils;
+using Firefly.Utils;
 
-namespace Dragonfly.Http
+namespace Firefly.Http
 {
     public class Baton
     {

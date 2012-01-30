@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace Dragonfly.Utils
+namespace Firefly.Utils
 {
     class Disposable : IDisposable
     {

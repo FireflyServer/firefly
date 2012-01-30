@@ -1,9 +1,9 @@
 ﻿using System.Threading;
-using Dragonfly.Http;
-using Dragonfly.Tests.Fakes;
-using Dragonfly.Utils;
+using Firefly.Http;
+using Firefly.Tests.Fakes;
+using Firefly.Utils;
 
-namespace Dragonfly.Tests.Http
+namespace Firefly.Tests.Http
 {
     public abstract class ConnectionTestsBase
     {

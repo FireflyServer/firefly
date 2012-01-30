@@ -1,10 +1,10 @@
-﻿using Dragonfly.Utils;
+﻿using Firefly.Utils;
 
-namespace Dragonfly
+namespace Firefly
 {
-    public class DragonflyServices : IDragonflyServices
+    public class FireflyService : IFireflyService
     {
-        public DragonflyServices()
+        public FireflyService()
         {
             Trace = NullServerTrace.Instance;
             Memory = new MemoryPool();

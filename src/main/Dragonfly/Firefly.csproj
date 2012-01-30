@@ -8,8 +8,8 @@
     <ProjectGuid>{CA805DDB-E41D-42A0-AF7E-2388E2670663}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Dragonfly</RootNamespace>
-    <AssemblyName>Dragonfly</AssemblyName>
+    <RootNamespace>Firefly</RootNamespace>
+    <AssemblyName>Firefly</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\..\..\Dragonfly\</SolutionDir>
@@ -35,10 +35,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="DragonflyServices.cs" />
+    <Compile Include="FireflyService.cs" />
     <Compile Include="Http\Baton.cs" />
     <Compile Include="Http\MessageBody.cs" />
-    <Compile Include="IDragonflyServices.cs" />
+    <Compile Include="IFireflyService.cs" />
     <Compile Include="Utils\Disposable.cs" />
     <Compile Include="Http\Connection.cs" />
     <Compile Include="Http\Frame.cs" />

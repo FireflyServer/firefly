@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Dragonfly.Utils;
+using Firefly.Utils;
 using Gate.Owin;
 
-namespace Dragonfly.Tests.Fakes
+namespace Firefly.Tests.Fakes
 {
     public class FakeApp
     {

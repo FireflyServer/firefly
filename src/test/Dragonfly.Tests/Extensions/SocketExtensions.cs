@@ -3,7 +3,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Text;
 
-namespace Dragonfly.Tests.Http
+namespace Firefly.Tests.Http
 {
     public static class TextExtensions
     {

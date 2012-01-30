@@ -3,29 +3,29 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using Dragonfly.Utils;
+using Firefly.Utils;
 using Gate.Owin;
 
 // ReSharper disable AccessToModifiedClosure
 
-namespace Dragonfly.Http
+namespace Firefly.Http
 {
     public class ServerFactory
     {
-        private readonly IDragonflyServices _services;
+        private readonly IFireflyService _services;
 
         public ServerFactory()
-            : this(new DragonflyServices())
+            : this(new FireflyService())
         {
         }
 
         public ServerFactory(IServerTrace trace)
-            : this(new DragonflyServices { Trace = trace })
+            : this(new FireflyService { Trace = trace })
         {
 
         }
 
-        public ServerFactory(IDragonflyServices services)
+        public ServerFactory(IFireflyService services)
         {
             _services = services;            
         }

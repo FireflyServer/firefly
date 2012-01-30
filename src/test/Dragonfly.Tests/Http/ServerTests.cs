@@ -5,12 +5,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-using Dragonfly.Http;
-using Dragonfly.Tests.Fakes;
+using Firefly.Tests.Fakes;
+using Firefly.Http;
 using Gate.Owin;
 using Xunit;
 
-namespace Dragonfly.Tests.Http
+namespace Firefly.Tests.Http
 {
     public class ServerTests
     {

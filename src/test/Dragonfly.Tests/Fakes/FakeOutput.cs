@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Dragonfly.Http;
+using Firefly.Http;
 
-namespace Dragonfly.Tests.Fakes
+namespace Firefly.Tests.Fakes
 {
     public class FakeOutput
     {

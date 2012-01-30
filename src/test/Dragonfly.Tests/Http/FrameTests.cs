@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Dragonfly.Http;
-using Dragonfly.Utils;
+using Firefly.Http;
+using Firefly.Utils;
 using Xunit;
 
-namespace Dragonfly.Tests.Http
+namespace Firefly.Tests.Http
 {
     public class FrameTests : FrameTestsBase
     {

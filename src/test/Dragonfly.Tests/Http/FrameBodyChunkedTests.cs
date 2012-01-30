@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Dragonfly.Http;
+using Firefly.Http;
 using Xunit;
 
-namespace Dragonfly.Tests.Http
+namespace Firefly.Tests.Http
 {
     public class FrameBodyChunkedTests : FrameTestsBase
     {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Net.Sockets;
 
-namespace Dragonfly.Utils
+namespace Firefly.Utils
 {
     class SocketWrapper : ISocket
     {

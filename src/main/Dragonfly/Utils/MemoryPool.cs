@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Dragonfly.Utils
+namespace Firefly.Utils
 {
     public class MemoryPool : IMemoryPool
     {

@@ -3,9 +3,9 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using Dragonfly.Utils;
+using Firefly.Utils;
 
-namespace Dragonfly.Tests.Fakes
+namespace Firefly.Tests.Fakes
 {
     public class FakeSocket : ISocket
     {

@@ -1,5 +1,5 @@
-Dragonfly HTTP Server
-Copyright 2011 Louis DeJardin
+Firefly HTTP Server
+Copyright 2012 Louis DeJardin
 
 This software was developed by 
 Louis DeJardin (http://whereslou.com/).

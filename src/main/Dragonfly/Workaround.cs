@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Gate.Owin;
 
-namespace Dragonfly
+namespace Firefly
 {
     static class Workaround
     {

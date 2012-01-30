@@ -7,14 +7,14 @@
     <owners>@authors@</owners>
     <language>en-US</language>
     <summary>@summary@</summary>
-    <projectUrl>http://loudej.github.com/dragonfly</projectUrl>
-    <licenseUrl>https://github.com/loudej/dragonfly/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>http://loudej.github.com/firefly</projectUrl>
+    <licenseUrl>https://github.com/loudej/firefly/blob/master/LICENSE.txt</licenseUrl>
     <tags>http owin</tags>
     <dependencies>
       <dependency id="Gate.Owin" version="0.2.1" />
     </dependencies>
   </metadata>
   <files>
-    <file src="build\Dragonfly.dll" target="lib\net40" />
+    <file src="build\Firefly.dll" target="lib\net40" />
   </files>
 </package>

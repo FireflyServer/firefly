@@ -1,8 +1,8 @@
-﻿using Dragonfly.Utils;
+﻿using Firefly.Utils;
 
-namespace Dragonfly
+namespace Firefly
 {
-    public interface IDragonflyServices
+    public interface IFireflyService
     {
         IServerTrace Trace { get; }
         IMemoryPool Memory { get; }

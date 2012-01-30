@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Dragonfly.Utils
+namespace Firefly.Utils
 {
     static class HeaderUtils
     {

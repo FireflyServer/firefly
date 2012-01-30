@@ -6,9 +6,9 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using Dragonfly.Http;
-using Dragonfly.Tests.Http;
-using Dragonfly.Utils;
+using Firefly.Http;
+using Firefly.Tests.Http;
+using Firefly.Utils;
 using Gate;
 using Gate.Adapters.Nancy;
 using Gate.Builder;
@@ -171,7 +171,7 @@ Connection: close
             var builder = new AppBuilder();
 
             builder
-                .Use(SetResponseHeader, "X-Server", "Dragonfly")
+                .Use(SetResponseHeader, "Server", "Firefly")
                 .Use(ShowCalls)
                 .UseWebSockets("/socketserver", OnConnection)
                 .UseChunked()

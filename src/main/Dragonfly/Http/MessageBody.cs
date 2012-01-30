@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using Dragonfly.Utils;
+using Firefly.Utils;
 
-namespace Dragonfly.Http
+namespace Firefly.Http
 {
     public abstract class MessageBody
     {

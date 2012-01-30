@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 
-namespace Dragonfly.Utils
+namespace Firefly.Utils
 {
     public interface ISocket
     {

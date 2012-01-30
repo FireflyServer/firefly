@@ -1,8 +1,8 @@
-﻿using Dragonfly.Http;
-using Dragonfly.Tests.Fakes;
+﻿using Firefly.Http;
+using Firefly.Tests.Fakes;
 using Xunit;
 
-namespace Dragonfly.Tests.Http
+namespace Firefly.Tests.Http
 {
     public class FrameTestsBase
     {

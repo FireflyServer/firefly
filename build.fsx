@@ -5,8 +5,8 @@ open Fake
 
 // properties
 let version = "0.2"
-let projectName = "Dragonfly"
-let projectDescription = "Dragonfly is a .NET HTTP Server in an assembly."
+let projectName = "Firefly"
+let projectDescription = "Firefly is a .NET HTTP Server in an assembly."
 let authors = ["Louis DeJardin"]
   
 let sourceDir = @".\src\"
@@ -120,7 +120,7 @@ Target "PackageZip" (fun _ ->
     !+ (buildDir + "\**\*.*") 
         -- "*.zip" 
         |> Scan
-        |> Zip buildDir (deployDir + "Dragonfly." + version + ".zip")
+        |> Zip buildDir (deployDir + "Firefly." + version + ".zip")
 )
 
 Target "PackageNuGet" (fun _ ->
@@ -137,7 +137,7 @@ Target "PackageNuGet" (fun _ ->
             Dependencies = ["Gate.Owin", "0.2.1"]
             OutputPath = nugetDir
             AccessKey = getBuildParamOrDefault "nugetkey" ""
-            Publish = hasBuildParam "nugetkey" })  "Dragonfly.nuspec"
+            Publish = hasBuildParam "nugetkey" })  "Firefly.nuspec"
 )
 
 

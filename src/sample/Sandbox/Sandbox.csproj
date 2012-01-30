@@ -77,13 +77,13 @@
     <Compile Include="WebSockets.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\main\Dragonfly\Dragonfly.csproj">
+    <ProjectReference Include="..\..\main\Dragonfly\Firefly.csproj">
       <Project>{CA805DDB-E41D-42A0-AF7E-2388E2670663}</Project>
-      <Name>Dragonfly</Name>
+      <Name>Firefly</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\test\Dragonfly.Tests\Dragonfly.Tests.csproj">
+    <ProjectReference Include="..\..\test\Dragonfly.Tests\Firefly.Tests.csproj">
       <Project>{043474E8-309A-42EB-904B-F570EA10E82D}</Project>
-      <Name>Dragonfly.Tests</Name>
+      <Name>Firefly.Tests</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

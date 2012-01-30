@@ -1,8 +1,8 @@
 ﻿using System.Linq;
-using Dragonfly.Http;
+using Firefly.Http;
 using Xunit;
 
-namespace Dragonfly.Tests.Http
+namespace Firefly.Tests.Http
 {
     public class FrameRequestHeaderTests : FrameTestsBase
     {

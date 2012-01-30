@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Dragonfly.Utils;
+using Firefly.Utils;
 
-namespace Dragonfly.Tests.Fakes
+namespace Firefly.Tests.Fakes
 {
-    public class FakeServices : IDragonflyServices
+    public class FakeServices : IFireflyService
     {
         public FakeServices()
         {

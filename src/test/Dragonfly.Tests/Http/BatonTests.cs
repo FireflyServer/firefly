@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Dragonfly.Http;
-using Dragonfly.Tests.Fakes;
-using Dragonfly.Utils;
+using Firefly.Utils;
+using Firefly.Http;
+using Firefly.Tests.Fakes;
 using Xunit;
 
-namespace Dragonfly.Tests.Http
+namespace Firefly.Tests.Http
 {
     public class BatonTests
     {

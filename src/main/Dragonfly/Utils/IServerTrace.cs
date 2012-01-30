@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace Dragonfly.Utils
+namespace Firefly.Utils
 {
     public enum TraceMessage
     {

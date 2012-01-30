@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using Xunit;
 
-namespace Dragonfly.Tests.Http
+namespace Firefly.Tests.Http
 {
     public class ConnectionTests : ConnectionTestsBase
     {

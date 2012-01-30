@@ -2,10 +2,10 @@
 using System.IO;
 using System.Text;
 using System.Threading;
-using Dragonfly.Utils;
+using Firefly.Utils;
 using Gate.Owin;
 
-namespace Dragonfly.Tests.Fakes
+namespace Firefly.Tests.Fakes
 {
     public class FakeRequestBody
     {

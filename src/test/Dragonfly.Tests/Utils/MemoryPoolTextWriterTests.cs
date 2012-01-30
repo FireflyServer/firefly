@@ -1,8 +1,8 @@
-﻿using Dragonfly.Tests.Fakes;
-using Dragonfly.Utils;
+﻿using Firefly.Tests.Fakes;
+using Firefly.Utils;
 using Xunit;
 
-namespace Dragonfly.Tests.Utils
+namespace Firefly.Tests.Utils
 {
     public class MemoryPoolTextWriterTests
     {

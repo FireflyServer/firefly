@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace Dragonfly.Tests.Fakes
+namespace Firefly.Tests.Fakes
 {
     public class FakeResponseBody 
     {

@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Dragonfly.Http;
-using Dragonfly.Tests.Http;
+using Firefly.Tests.Http;
+using Firefly.Http;
 using Xunit;
 
-namespace Dragonfly.Tests.Fakes
+namespace Firefly.Tests.Fakes
 {
     public class FakeInput
     {

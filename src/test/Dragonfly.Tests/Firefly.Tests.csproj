@@ -8,8 +8,8 @@
     <ProjectGuid>{043474E8-309A-42EB-904B-F570EA10E82D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Dragonfly.Tests</RootNamespace>
-    <AssemblyName>Dragonfly.Tests</AssemblyName>
+    <RootNamespace>Firefly.Tests</RootNamespace>
+    <AssemblyName>Firefly.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\..\..\Dragonfly\</SolutionDir>
@@ -74,13 +74,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\main\Dragonfly\Dragonfly.csproj">
+    <ProjectReference Include="..\..\main\Dragonfly\Firefly.csproj">
       <Project>{CA805DDB-E41D-42A0-AF7E-2388E2670663}</Project>
-      <Name>Dragonfly</Name>
+      <Name>Firefly</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Todo.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />

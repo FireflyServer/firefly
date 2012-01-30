@@ -1,4 +1,4 @@
-﻿namespace Dragonfly.Utils
+﻿namespace Firefly.Utils
 {
     public interface IMemoryPool
     {

@@ -2,14 +2,14 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
-using Dragonfly.Utils;
+using Firefly.Utils;
 using Gate.Owin;
 
-namespace Dragonfly.Http
+namespace Firefly.Http
 {
     public class Connection : IAsyncResult
     {
-        private readonly IDragonflyServices _services;
+        private readonly IFireflyService _services;
         private readonly AppDelegate _app;
         private readonly ISocket _socket;
         private readonly Action<ISocket> _disconnected;
@@ -21,7 +21,7 @@ namespace Dragonfly.Http
         private Action _frameConsumeCallback;
         private SocketAsyncEventArgs _socketReceiveAsyncEventArgs;
 
-        public Connection(IDragonflyServices services, AppDelegate app, ISocket socket, Action<ISocket> disconnected)
+        public Connection(IFireflyService services, AppDelegate app, ISocket socket, Action<ISocket> disconnected)
         {
             _services = services;
             _app = app;

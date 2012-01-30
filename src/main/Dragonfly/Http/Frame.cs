@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Dragonfly.Utils;
+using Firefly.Utils;
 using Gate.Owin;
 
 // ReSharper disable AccessToModifiedClosure
 
-namespace Dragonfly.Http
+namespace Firefly.Http
 {
     public enum ProduceEndType
     {
@@ -19,7 +19,7 @@ namespace Dragonfly.Http
 
     public class Frame
     {
-        private readonly IDragonflyServices _services;
+        private readonly IFireflyService _services;
         private readonly AppDelegate _app;
         private readonly Func<ArraySegment<byte>, Action, bool> _produceData;
         private readonly Action<ProduceEndType> _produceEnd;
@@ -43,7 +43,7 @@ namespace Dragonfly.Http
         private bool _resultStarted;
         private bool _keepAlive;
 
-        public Frame(IDragonflyServices services, AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action<ProduceEndType> produceEnd)
+        public Frame(IFireflyService services, AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action<ProduceEndType> produceEnd)
         {
             _services = services;
             _app = app;
