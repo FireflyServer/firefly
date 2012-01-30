@@ -81,12 +81,13 @@ namespace Dragonfly.Http
 
         private void Go(bool newFrame)
         {
+            var frame = _frame;
             if (newFrame)
             {
-                _frame = new Frame(_services, _app, ProduceData, ProduceEnd);
+                frame = _frame = new Frame(_services, _app, ProduceData, ProduceEnd);
                 if (_baton.Buffer.Count != 0)
                 {
-                    if (_frame.Consume(
+                    if (frame.Consume(
                         _baton,
                         _frameConsumeCallback,
                         _fault))
@@ -96,7 +97,7 @@ namespace Dragonfly.Http
                 }
             }
 
-            while (_frame.LocalIntakeFin == false)
+            while (frame.LocalIntakeFin == false)
             {
                 SocketError recvError;
                 var buffer = _baton.Available(128);
@@ -125,7 +126,7 @@ namespace Dragonfly.Http
                     _baton.Extend(receiveCount);
                 }
 
-                if (_frame.Consume(
+                if (frame.Consume(
                     _baton,
                     _frameConsumeCallback,
                     _fault))

@@ -242,9 +242,13 @@ namespace Dragonfly.Http
             {
                 _keepAlive = false;
             }
-            if (_keepAlive == false && hasConnection == false)
+            if (_keepAlive == false && hasConnection == false && _httpVersion == "HTTP/1.1")
             {
                 writer.Write("Connection: close\r\n\r\n");
+            }
+            else if (_keepAlive && hasConnection == false && _httpVersion == "HTTP/1.0")
+            {
+                writer.Write("Connection: keep-alive\r\n\r\n");
             }
             else
             {

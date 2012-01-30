@@ -18,7 +18,7 @@ namespace Dragonfly.Utils
         private byte[] _dataArray;
         private int _dataEnd;
 
-        private readonly Encoder _encoding;
+        private readonly Encoder _encoder;
 
         public ArraySegment<byte> Buffer
         {
@@ -30,7 +30,7 @@ namespace Dragonfly.Utils
             _memory = memory;
             _textArray = _memory.AllocChar(_textLength);
             _dataArray = _memory.Empty;
-            _encoding = Encoding.Default.GetEncoder();
+            _encoder = Encoding.Default.GetEncoder();
         }
 
         public override Encoding Encoding
@@ -64,52 +64,26 @@ namespace Dragonfly.Utils
 
         private void Encode(bool flush)
         {
-            int charsUsed;
-            int bytesUsed;
-            bool completed;
-
-            if (flush)
-            {
-                var needed = _encoding.GetByteCount(
-                    _textArray, _textBegin, _textEnd - _textBegin,
-                    true);
-                var available = _dataEnd - _dataArray.Length;
-                if (needed > available)
-                {
-                    Grow(needed - available);
-                }
-            }
-
-            _encoding.Convert(
+            var bytesNeeded = _encoder.GetByteCount(
                 _textArray, _textBegin, _textEnd - _textBegin,
-                _dataArray, _dataEnd, _dataArray.Length - _dataEnd,
-                flush, out charsUsed, out bytesUsed, out completed);
+                flush);
 
-            if (charsUsed == 0 && bytesUsed == 0 && _textEnd != _textBegin)
-            {
-                Grow(_dataArray.Length + Math.Max(_dataArray.Length, 128));
+            Grow(bytesNeeded);
 
-                _encoding.Convert(
-                    _textArray, _textBegin, _textEnd - _textBegin,
-                    _dataArray, _dataEnd, _dataArray.Length - _dataEnd,
-                    flush, out charsUsed, out bytesUsed, out completed);
-            }
+            var bytesUsed = _encoder.GetBytes(
+                _textArray, _textBegin, _textEnd - _textBegin,
+                _dataArray, _dataEnd, flush);
 
-            if (_textBegin + charsUsed == _textEnd)
-            {
-                _textBegin = _textEnd = 0;
-            }
-            else
-            {
-                _textBegin += charsUsed;
-            }
-
+            _textBegin = _textEnd = 0;
             _dataEnd += bytesUsed;
         }
 
-        private void Grow(int minimumNeeded)
+        private void Grow(int minimumAvailable)
         {
-            var newLength = minimumNeeded;
+            if (_dataArray.Length - _dataEnd >= minimumAvailable)
+                return;
+
+            var newLength = _dataArray.Length + Math.Max(_dataArray.Length, minimumAvailable);
             var newArray = _memory.AllocByte(newLength);
             Array.Copy(_dataArray, 0, newArray, 0, _dataEnd);
             _memory.FreeByte(_dataArray);
