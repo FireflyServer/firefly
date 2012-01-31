@@ -134,10 +134,22 @@ Target "PackageNuGet" (fun _ ->
             Project = projectName
             Description = projectDescription                               
             Authors = authors
-            Dependencies = ["Gate.Owin", "0.2.1"]
+            Dependencies = []
             OutputPath = nugetDir
             AccessKey = getBuildParamOrDefault "nugetkey" ""
             Publish = hasBuildParam "nugetkey" })  "Firefly.nuspec"
+
+    NuGet (fun p -> 
+        {p with 
+            ToolPath = nugetPath              
+            Version = version
+            Project = "Dragonfly"
+            Description = "Dragonfly obsolete - renamed to Firefly"                               
+            Authors = authors
+            Dependencies = []
+            OutputPath = nugetDir
+            AccessKey = getBuildParamOrDefault "nugetkey" ""
+            Publish = hasBuildParam "nugetkey" })  "Dragonfly.nuspec"
 )
 
 
