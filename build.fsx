@@ -4,7 +4,7 @@
 open Fake
 
 // properties
-let version = "0.2"
+let version = "0.3"
 let projectName = "Firefly"
 let projectDescription = "Firefly is a .NET HTTP Server in an assembly."
 let authors = ["Louis DeJardin"]

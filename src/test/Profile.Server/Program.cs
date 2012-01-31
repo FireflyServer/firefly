@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Text;
 using Firefly.Http;
 using Firefly.Utils;
-using Gate.Owin;
+using Owin;
 
 namespace Profile.Server
 {
@@ -83,24 +83,23 @@ namespace Profile.Server
                         {"Content-Type", new[] {"text/plain"}},
                         {"Content-Length", new[] {"0"}},
                     },
-                    (write, error, end) =>
+                    (write, flush, end, cancel) =>
                     {
                         try
                         {
-                            end();
+                            end(null);
                         }
                         catch (Exception ex)
                         {
                             try
                             {
-                                error(ex);
+                                end(ex);
                             }
                             catch
                             {
                                 Console.WriteLine(ex.Message);
                             }
                         }
-                        return () => { };
                     }
                 );
         }
@@ -114,46 +113,25 @@ namespace Profile.Server
                         {"Content-Type", new[] {"text/plain"}},
                         {"Content-Length", new[] {"8"}},
                     },
-                    (write, error, end) =>
+                    (write, flush, end, cancel) =>
                     {
                         try
                         {
                             var bytes = Encoding.Default.GetBytes("Baseline");
-                            if (!write(new ArraySegment<byte>(bytes),
-                                () =>
-                                {
-                                    try
-                                    {
-                                        end();
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        try
-                                        {
-                                            error(ex);
-                                        }
-                                        catch
-                                        {
-                                            Console.WriteLine(ex.Message);
-                                        }
-                                    }
-                                }))
-                            {
-                                end();
-                            }
+                            write(new ArraySegment<byte>(bytes));
+                            end(null);
                         }
                         catch (Exception ex)
                         {
                             try
                             {
-                                error(ex);
+                                end(ex);
                             }
                             catch
                             {
                                 Console.WriteLine(ex.Message);
                             }
                         }
-                        return () => { };
                     }
                 );
         }
@@ -167,46 +145,25 @@ namespace Profile.Server
                         {"Content-Type", new[] {"text/html"}},
                         {"Content-Length", new[] {WelcomeText.Length.ToString()}},
                     },
-                    (write, error, end) =>
+                    (write, flush, end, cancel) =>
                     {
                         try
                         {
                             var bytes = Encoding.Default.GetBytes(WelcomeText);
-                            if (!write(new ArraySegment<byte>(bytes),
-                                () =>
-                                {
-                                    try
-                                    {
-                                        end();
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        try
-                                        {
-                                            error(ex);
-                                        }
-                                        catch
-                                        {
-                                            Console.WriteLine(ex.Message);
-                                        }
-                                    }
-                                }))
-                            {
-                                end();
-                            }
+                            write(new ArraySegment<byte>(bytes));
+                            end(null);                            
                         }
                         catch (Exception ex)
                         {
                             try
                             {
-                                error(ex);
+                                end(ex);
                             }
                             catch
                             {
                                 Console.WriteLine(ex.Message);
                             }
                         }
-                        return () => { };
                     }
                 );
         }

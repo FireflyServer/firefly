@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Firefly.Utils;
+using Owin;
 
 namespace Firefly.Http
 {
@@ -16,16 +17,23 @@ namespace Firefly.Http
 
         class Subscriber
         {
-            public Subscriber(Func<ArraySegment<byte>, Action, bool> next, Action<Exception> error, Action complete)
+            public Subscriber(
+                Func<ArraySegment<byte>, bool> write,
+                Func<Action, bool> flush,
+                Action<Exception> end,
+                CancellationToken cancellationToken)
             {
-                Next = next;
-                Error = error;
-                Complete = complete;
+                Write = write;
+                Flush = flush;
+                End = end;
+                CancellationToken = cancellationToken;
             }
 
-            public Func<ArraySegment<byte>, Action, bool> Next { get; private set; }
-            public Action<Exception> Error { get; private set; }
-            public Action Complete { get; private set; }
+            public Func<ArraySegment<byte>, bool> Write { get; set; }
+            public Func<Action, bool> Flush { get; set; }
+            public Action<Exception> End { get; set; }
+            public CancellationToken CancellationToken { get; set; }
+
         }
 
         protected MessageBody(Action continuation)
@@ -70,33 +78,46 @@ namespace Firefly.Http
             if (_subscriber != null) return false;
 
             Subscribe(
-                (_, __) => false,
+                _ => false,
+                _ => false,
                 _ => continuation(),
-                continuation).Invoke();
+                CancellationToken.None);
 
             return true;
         }
 
-        public Action Subscribe(Func<ArraySegment<byte>, Action, bool> next, Action<Exception> error, Action complete)
+
+        public void Subscribe(
+            Func<ArraySegment<byte>, bool> write,
+            Func<Action, bool> flush,
+            Action<Exception> end,
+            CancellationToken cancellationToken)
         {
-            var subscriber = new Subscriber(next, error, complete);
+            var subscriber = new Subscriber(write, flush, end, cancellationToken);
             if (Interlocked.CompareExchange(ref _subscriber, subscriber, null) != null)
             {
                 try
                 {
-                    error(new InvalidOperationException("MessageBody.Subscribe may only be called once"));
+                    end(new InvalidOperationException("MessageBody.Subscribe may only be called once"));
                 }
                 catch
                 {
                 }
-                return () => { };
+                return;
+            }
+
+            if (_subscriber.CancellationToken.IsCancellationRequested)
+            {
+                _cancel = true;
+            }
+            else
+            {
+                _subscriber.CancellationToken.Register(() => _cancel = true);
             }
 
             var continuation = Interlocked.Exchange(ref _continuation, null);
             if (continuation != null)
                 continuation.Invoke();
-
-            return () => _cancel = true;
         }
 
         public abstract bool Consume(Baton baton, Action callback, Action<Exception> fault);
@@ -104,7 +125,8 @@ namespace Firefly.Http
 
         class ForRemainingData : MessageBody
         {
-            public ForRemainingData(Action continuation) : base(continuation)
+            public ForRemainingData(Action continuation)
+                : base(continuation)
             {
             }
 
@@ -113,13 +135,12 @@ namespace Firefly.Http
                 if (baton.RemoteIntakeFin)
                 {
                     LocalIntakeFin = true;
-                    _subscriber.Complete();
+                    _subscriber.End(null);
                     return false;
                 }
 
                 var consumed = baton.Take(baton.Buffer.Count);
-
-                return _subscriber.Next(consumed, callback);
+                return _subscriber.Write(consumed) && _subscriber.Flush(callback);
             }
         }
 
@@ -128,9 +149,10 @@ namespace Firefly.Http
             private readonly int _contentLength;
             private int _neededLength;
 
-            public ForContentLength(bool keepAlive, int contentLength, Action continuation) : base(continuation)
+            public ForContentLength(bool keepAlive, int contentLength, Action continuation)
+                : base(continuation)
             {
-                RequestKeepAlive = keepAlive; 
+                RequestKeepAlive = keepAlive;
                 _contentLength = contentLength;
                 _neededLength = _contentLength;
             }
@@ -145,29 +167,21 @@ namespace Firefly.Http
                 if (_neededLength != 0)
                 {
                     // TODO: if check baton.Complete==true && neededlength != 0 then remote socket closed early
-                    return _subscriber.Next(consumed, callback);
+                    return _subscriber.Write(consumed) && _subscriber.Flush(callback);
                 }
 
                 LocalIntakeFin = true;
 
                 if (consumed.Count != 0)
                 {
-                    var delayed = _subscriber.Next(
-                        consumed,
-                        () =>
-                        {
-                            _subscriber.Complete();
-                            callback();
-                        });
-                    if (delayed)
+                    if (_subscriber.Write(consumed) &&
+                        _subscriber.Flush(() => { _subscriber.End(null); callback(); }))
                     {
                         return true;
                     }
-                    _subscriber.Complete();
-                    return false;
                 }
 
-                _subscriber.Complete();
+                _subscriber.End(null);
                 return false;
             }
         }
@@ -190,7 +204,8 @@ namespace Firefly.Http
             } ;
 
 
-            public ForChunkedEncoding(bool keepAlive, Action continuation) : base(continuation)
+            public ForChunkedEncoding(bool keepAlive, Action continuation)
+                : base(continuation)
             {
                 RequestKeepAlive = keepAlive;
             }
@@ -213,7 +228,7 @@ namespace Firefly.Http
                             {
                                 _mode = Mode.Complete;
                                 LocalIntakeFin = true;
-                                _subscriber.Complete();
+                                _subscriber.End(null);
                                 return false;
                             }
                             _mode = Mode.ChunkData;
@@ -234,24 +249,11 @@ namespace Firefly.Http
                             _neededLength -= consumeLength;
                             var consumed = baton.Take(consumeLength);
 
-                            var paused = _subscriber.Next(
-                                consumed,
-                                () =>
-                                {
-                                    try
-                                    {
-                                        if (!Consume(baton, callback, fault))
-                                            callback();
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        fault(ex);
-                                    }
-                                });
-                            if (paused)
+                            if (_subscriber.Write(consumed) &&
+                                _subscriber.Flush(callback))
                             {
                                 return true;
-                            }
+                            }                           
                             break;
 
                         case Mode.ChunkDataCRLF:

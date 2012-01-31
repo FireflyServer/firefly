@@ -15,13 +15,18 @@ namespace Firefly.Tests.Fakes
             Encoding = Encoding.UTF8;
         }
 
-        public bool ProduceData(ArraySegment<byte> data, Action resume)
+        public bool Write(ArraySegment<byte> data)
         {
             MemoryStream.Write(data.Array, data.Offset, data.Count);
             return false;
         }
 
-        public void ProduceEnd(ProduceEndType produceEndType)
+        public bool Flush(Action drained)
+        {
+            return false;
+        }
+
+        public void End(ProduceEndType produceEndType)
         {
             if (produceEndType == ProduceEndType.SocketShutdownSend)
                 ShutdownSend = true;
@@ -45,5 +50,7 @@ namespace Firefly.Tests.Fakes
         {
             get { return Encoding.GetString(MemoryStream.ToArray()); }
         }
+
+        
     }
 }

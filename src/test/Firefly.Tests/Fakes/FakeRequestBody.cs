@@ -2,8 +2,7 @@
 using System.IO;
 using System.Text;
 using System.Threading;
-using Firefly.Utils;
-using Gate.Owin;
+using Owin;
 
 namespace Firefly.Tests.Fakes
 {
@@ -37,31 +36,28 @@ namespace Firefly.Tests.Fakes
             get { return Encoding.GetString(MemoryStream.ToArray()); }
         }
 
-        public Action Subscribe(
-            Func<ArraySegment<byte>, Action, bool> next,
-            Action<Exception> error,
-            Action complete)
+        public void Subscribe(
+            Func<ArraySegment<byte>, bool> write,
+            Func<Action, bool> flush,
+            Action<Exception> end,
+            CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _subscribeCount);
-            var cancel = Body(
-                (data, continuation) =>
+            cancellationToken.Register(() => Canceled = true);
+            Body(
+                data =>
                 {
                     MemoryStream.Write(data.Array, data.Offset, data.Count);
-                    return next(data, continuation);
+                    return write(data);
                 },
-                    ex =>
-                    {
-                        LastException = ex;
-                        error(ex);
-                    },
-                    () =>
-                    {
-                        Ended = true;
-                        complete();
-                    });
-            return () =>
-                       {
-                           Canceled = true;  cancel(); };
+                flush,
+                ex =>
+                {
+                    LastException = ex;
+                    Ended = true;
+                    end(ex);
+                },
+                cancellationToken);
         }
 
     }

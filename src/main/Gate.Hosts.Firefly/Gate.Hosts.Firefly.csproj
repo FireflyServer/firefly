@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{043474E8-309A-42EB-904B-F570EA10E82D}</ProjectGuid>
+    <ProjectGuid>{52B48C19-2A19-426A-9F96-07C0B63926C0}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Firefly.Tests</RootNamespace>
-    <AssemblyName>Firefly.Tests</AssemblyName>
+    <RootNamespace>Gate.Hosts.Firefly</RootNamespace>
+    <AssemblyName>Gate.Hosts.Firefly</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\..\..\Dragonfly\</SolutionDir>
@@ -33,51 +33,22 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Owin">
-      <HintPath>..\..\..\packages\OWIN.0.7\lib\net40\Owin.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="xunit, Version=1.9.0.1566, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\xunit.1.9.0.1566\lib\xunit.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Fakes\FakeApp.cs" />
-    <Compile Include="Fakes\FakeMemoryPool.cs" />
-    <Compile Include="Fakes\FakeResponseBody.cs" />
-    <Compile Include="Fakes\FakeInput.cs" />
-    <Compile Include="Fakes\FakeOutput.cs" />
-    <Compile Include="Fakes\FakeRequestBody.cs" />
-    <Compile Include="Fakes\FakeServices.cs" />
-    <Compile Include="Fakes\FakeSocket.cs" />
-    <Compile Include="Fakes\FakeTrace.cs" />
-    <Compile Include="Http\BatonTests.cs" />
-    <Compile Include="Http\ConnectionTests.cs" />
-    <Compile Include="Http\ConnectionTestsBase.cs" />
-    <Compile Include="Http\FrameBodyChunkedTests.cs" />
-    <Compile Include="Http\FrameRequestHeaderTests.cs" />
-    <Compile Include="Http\FrameTests.cs" />
-    <Compile Include="Http\FrameTestsBase.cs" />
-    <Compile Include="Http\ServerTests.cs" />
-    <Compile Include="Extensions\SocketExtensions.cs" />
+    <Compile Include="ServerFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utils\MemoryPoolTextWriterTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\main\Firefly\Firefly.csproj">
+    <ProjectReference Include="..\Firefly\Firefly.csproj">
       <Project>{CA805DDB-E41D-42A0-AF7E-2388E2670663}</Project>
       <Name>Firefly</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Owin">
+      <HintPath>..\..\..\packages\OWIN.0.7\lib\net40\Owin.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />

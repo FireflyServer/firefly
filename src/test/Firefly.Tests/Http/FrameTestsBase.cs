@@ -18,7 +18,15 @@ namespace Firefly.Tests.Http
             App = new FakeApp();
             Output = new FakeOutput();
             Input = new FakeInput();
-            Frame = new Frame(Services, App.Call, Output.ProduceData, Output.ProduceEnd);
+            Frame = new Frame(
+                new FrameContext
+                    {
+                        Services = Services,
+                        App = App.Call,
+                        Write = Output.Write,
+                        Flush = Output.Flush,
+                        End = Output.End,
+                    });
             Input.Consume = Frame.Consume;
         }
 

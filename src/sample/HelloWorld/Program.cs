@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Firefly.Http;
-using Gate.Owin;
+using Owin;
 
 namespace HelloWorld
 {
@@ -27,13 +27,12 @@ namespace HelloWorld
                     {
                         {"Content-Type", new[] {"text/plain"}}
                     },
-                (write, error, end) =>
-                    {
-                        var bytes = Encoding.Default.GetBytes("Hello world!");
-                        write(new ArraySegment<byte>(bytes), null);
-                        end();
-                        return () => { };
-                    });
+                (write, flush, end, cancel) =>
+                {
+                    var bytes = Encoding.Default.GetBytes("Hello world!");
+                    write(new ArraySegment<byte>(bytes));
+                    end(null);
+                });
         }
     }
 }

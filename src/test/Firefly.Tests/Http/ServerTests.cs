@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
-using Firefly.Tests.Fakes;
 using Firefly.Http;
-using Gate.Owin;
+using Owin;
 using Xunit;
 
 namespace Firefly.Tests.Http
@@ -49,11 +45,7 @@ namespace Firefly.Tests.Http
                 result(
                     "200 OK",
                     new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase),
-                    (a, b, c) =>
-                    {
-                        c();
-                        return () => { };
-                    });
+                    (write, flush, end, cancel) => end(null));
             };
 
             using (new ServerFactory().Create(app, 56567))

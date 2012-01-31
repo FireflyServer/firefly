@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Threading;
 
 namespace Firefly.Tests.Fakes
 {
@@ -10,12 +11,15 @@ namespace Firefly.Tests.Fakes
             Encoding = Encoding.UTF8;
             Text = "";
         }
-
-        public Action Subscribe(Func<ArraySegment<byte>, Action, bool> next, Action<Exception> error, Action complete)
+        
+        public void Subscribe(
+            Func<ArraySegment<byte>, bool> write, 
+            Func<Action, bool> flush,
+            Action<Exception> end,
+            CancellationToken cancellationtoken)
         {
-            next(Bytes, null);
-            complete();
-            return () => { };
+            write(Bytes);
+            end(null);
         }
 
         public ArraySegment<byte> Bytes { get; set; }
@@ -34,5 +38,7 @@ namespace Firefly.Tests.Fakes
                 Bytes = new ArraySegment<byte>(data, 0, data.Length);
             }
         }
+
+        
     }
 }

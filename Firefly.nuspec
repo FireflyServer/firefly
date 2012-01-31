@@ -11,7 +11,7 @@
     <licenseUrl>https://github.com/loudej/firefly/blob/master/LICENSE.txt</licenseUrl>
     <tags>http owin</tags>
     <dependencies>
-      <dependency id="Gate.Owin" version="0.2.1" />
+      <dependency id="Owin" version="0.7" />
     </dependencies>
   </metadata>
   <files>

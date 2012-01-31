@@ -13,7 +13,7 @@ using Gate;
 using Gate.Adapters.Nancy;
 using Gate.Builder;
 using Gate.Middleware;
-using Gate.Owin;
+using Owin;
 
 namespace Sandbox
 {
@@ -169,19 +169,21 @@ Connection: close
         private static IDisposable StartupNancyApp()
         {
             var builder = new AppBuilder();
-
-            builder
-                .Use(SetResponseHeader, "Server", "Firefly")
-                .Use(ShowCalls)
-                .UseWebSockets("/socketserver", OnConnection)
-                .UseChunked()
-                .RunNancy();
-
-            var app = builder.Materialize<AppDelegate>();
+            var app = builder.Build(Configuration);
             var server = new ServerFactory(new StdoutTrace()).Create(app, 8080);
 
             Console.WriteLine("Running on localhost:8080");
             return server;
+        }
+
+        private static void Configuration(IAppBuilder builder)
+        {
+            builder
+                .Use<AppDelegate,string,string>(SetResponseHeader, "Server", "Firefly")
+                .Use(ShowCalls)
+                //.UseWebSockets("/socketserver", OnConnection)
+                .UseChunked()
+                .RunNancy();
         }
 
         static Action<int, ArraySegment<byte>> OnConnection(Action<int, ArraySegment<byte>> outgoing)

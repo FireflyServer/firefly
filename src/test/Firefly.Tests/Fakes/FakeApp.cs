@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Firefly.Utils;
-using Gate.Owin;
+using System.Threading;
+using Owin;
 
 namespace Firefly.Tests.Fakes
 {
@@ -23,7 +22,7 @@ namespace Firefly.Tests.Fakes
         public ResultDelegate ResultCallback { get; set; }
         public Action<Exception> FaultCallback { get; set; }
 
-        
+
         public IDictionary<string, IEnumerable<string>> RequestHeaders { get; set; }
         public FakeRequestBody RequestBody { get; set; }
 
@@ -38,7 +37,7 @@ namespace Firefly.Tests.Fakes
         public void Call(IDictionary<string, object> env, ResultDelegate result, Action<Exception> fault)
         {
             CallCount += 1;
-            
+
             Env = env;
             ResultCallback = result;
             FaultCallback = fault;
@@ -50,13 +49,16 @@ namespace Firefly.Tests.Fakes
             {
                 if (OptionReadRequestBody)
                 {
+                    // read request body to nowhere, then call back result
                     RequestBody.Subscribe(
-                        (data, continuation) => false,
-                        fault,
-                        () => result(ResponseStatus, ResponseHeaders, ResponseBody.Subscribe));
+                        _ => false,
+                        _ => false,
+                        _ => result(ResponseStatus, ResponseHeaders, ResponseBody.Subscribe),
+                        CancellationToken.None);
                 }
                 else if (OptionCallResultImmediately)
                 {
+                    // just then call back result, request unconsumed
                     result(ResponseStatus, ResponseHeaders, ResponseBody.Subscribe);
                 }
             }
@@ -64,10 +66,12 @@ namespace Firefly.Tests.Fakes
             {
                 if (OptionReadRequestBody)
                 {
+                    // read request body to nowhere, and leave everything hanging
                     RequestBody.Subscribe(
-                        (data, continuation) => false,
-                        fault,
-                        () => { });
+                        _ => false,
+                        _ => false,
+                        _ => { },
+                        CancellationToken.None);
                 }
             }
         }

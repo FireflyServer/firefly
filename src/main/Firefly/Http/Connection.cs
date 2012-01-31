@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 using Firefly.Utils;
-using Gate.Owin;
+using Owin;
 
 namespace Firefly.Http
 {
@@ -84,7 +84,15 @@ namespace Firefly.Http
             var frame = _frame;
             if (newFrame)
             {
-                frame = _frame = new Frame(_services, _app, ProduceData, ProduceEnd);
+                frame = _frame = new Frame(new FrameContext
+                {
+                    Services = _services,
+                    App = _app,
+                    Write = data => ProduceData(data, null),
+                    Flush = _ => false,
+                    End = ProduceEnd
+                });
+
                 if (_baton.Buffer.Count != 0)
                 {
                     if (frame.Consume(
@@ -278,9 +286,9 @@ namespace Firefly.Http
                     break;
                 case ProduceEndType.SocketDisconnect:
                     _services.Trace.Event(TraceEventType.Stop, TraceMessage.Connection);
-                    
+
                     _baton.Free();
-                    
+
                     _socketReceiveAsyncEventArgs.Dispose();
                     _socketReceiveAsyncEventArgs = null;
                     _socket.Shutdown(SocketShutdown.Receive);

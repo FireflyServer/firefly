@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using Firefly.Utils;
-using Gate.Owin;
+using Owin;
 
 // ReSharper disable AccessToModifiedClosure
 

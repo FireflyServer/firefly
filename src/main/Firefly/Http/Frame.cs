@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Firefly.Utils;
-using Gate.Owin;
+using Owin;
 
 // ReSharper disable AccessToModifiedClosure
 
@@ -17,12 +17,18 @@ namespace Firefly.Http
         ConnectionKeepAlive,
     }
 
+    public struct FrameContext
+    {
+        public IFireflyService Services;
+        public AppDelegate App;
+        public Func<ArraySegment<byte>, bool> Write;
+        public Func<Action, bool> Flush;
+        public Action<ProduceEndType> End;
+    }
+
     public class Frame
     {
-        private readonly IFireflyService _services;
-        private readonly AppDelegate _app;
-        private readonly Func<ArraySegment<byte>, Action, bool> _produceData;
-        private readonly Action<ProduceEndType> _produceEnd;
+        private FrameContext _context;
 
         Mode _mode;
         enum Mode
@@ -43,12 +49,9 @@ namespace Firefly.Http
         private bool _resultStarted;
         private bool _keepAlive;
 
-        public Frame(IFireflyService services, AppDelegate app, Func<ArraySegment<byte>, Action, bool> produceData, Action<ProduceEndType> produceEnd)
+        public Frame(FrameContext context)
         {
-            _services = services;
-            _app = app;
-            _produceData = produceData;
-            _produceEnd = produceEnd;
+            _context = context;
         }
 
         public bool LocalIntakeFin
@@ -130,14 +133,17 @@ namespace Firefly.Http
                 return
                     () =>
                     {
-                        if (!_resultStarted)
+                        if (_resultStarted)
                         {
                             continuation.Invoke();
                         }
                         else
                         {
                             var bytes = Encoding.Default.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
-                            if (!_produceData(new ArraySegment<byte>(bytes), continuation))
+                            var isasync =
+                                _context.Write(new ArraySegment<byte>(bytes)) &&
+                                _context.Flush(continuation);
+                            if (!isasync)
                                 continuation.Invoke();
                         }
                     };
@@ -148,26 +154,20 @@ namespace Firefly.Http
         private void Execute()
         {
             var env = CreateOwinEnvironment();
-            _app(
+            _context.App(
                 env,
                 (status, headers, body) =>
                 {
                     _resultStarted = true;
                     var responseHeader = CreateResponseHeader(status, headers);
-
-                    if (_produceData(
-                        responseHeader.Item1,
-                        () =>
-                        {
-                            responseHeader.Item2.Dispose();
-                            body(_produceData, ProduceEnd, ProduceEnd);
-                        }))
+                    var buffering = _context.Write(responseHeader.Item1);
+                    responseHeader.Item2.Dispose();
+                    if (buffering && _context.Flush(
+                        () => body(_context.Write, _context.Flush, ProduceEnd, CancellationToken.None)))
                     {
                         return;
                     }
-
-                    responseHeader.Item2.Dispose();
-                    body(_produceData, ProduceEnd, ProduceEnd);
+                    body(_context.Write, _context.Flush, ProduceEnd, CancellationToken.None);
                 },
                 ProduceEnd);
 
@@ -176,21 +176,17 @@ namespace Firefly.Http
 
         private void ProduceEnd(Exception ex)
         {
-            ProduceEnd();
-        }
-
-        private void ProduceEnd()
-        {
             if (!_keepAlive)
-                _produceEnd(ProduceEndType.SocketShutdownSend);
+                _context.End(ProduceEndType.SocketShutdownSend);
 
-            if (!_messageBody.Drain(() => _produceEnd(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect)))
-                _produceEnd(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect);
+            if (!_messageBody.Drain(() => _context.End(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect)))
+                _context.End(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect);
         }
+
 
         private Tuple<ArraySegment<byte>, IDisposable> CreateResponseHeader(string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
         {
-            var writer = new MemoryPoolTextWriter(_services.Memory);
+            var writer = new MemoryPoolTextWriter(_context.Services.Memory);
             writer.Write(_httpVersion);
             writer.Write(' ');
             writer.Write(status);
