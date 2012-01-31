@@ -73,7 +73,7 @@
     <Compile Include="Utils\WriteStream.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <None Include="WebSockets.cs" />
+    <Compile Include="WebSockets.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\main\Firefly\Firefly.csproj">

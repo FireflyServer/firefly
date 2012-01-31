@@ -181,7 +181,7 @@ Connection: close
             builder
                 .Use<AppDelegate,string,string>(SetResponseHeader, "Server", "Firefly")
                 .Use(ShowCalls)
-                //.UseWebSockets("/socketserver", OnConnection)
+                .UseWebSockets("/socketserver", OnConnection)
                 .UseChunked()
                 .RunNancy();
         }

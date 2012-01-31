@@ -62,10 +62,8 @@ namespace Sandbox
             Func<Action<int, ArraySegment<byte>>, Action<int, ArraySegment<byte>>> service)
         {
             return
-                (next, error, complete) =>
+                (write, flush, end, cancel) =>
                 {
-                    var cancel = false;
-
                     Action<int, ArraySegment<byte>> outgoing =
                         (opcode, data) =>
                         {
@@ -74,14 +72,14 @@ namespace Sandbox
                             bytes[0] = (byte)(0x80 | opcode);
                             bytes[1] = (byte)data.Count;
                             Array.Copy(data.Array, data.Offset, bytes, 2, data.Count);
-                            next(new ArraySegment<byte>(bytes, 0, bytes.Length), null);
+                            write(new ArraySegment<byte>(bytes, 0, bytes.Length));
                         };
                     var incoming = service(outgoing);
 
                     var buffer = new ArraySegment<byte>(new byte[128], 0, 0);
 
                     requestBody.Invoke(
-                        (data, continuation) =>
+                        data =>
                         {
                             buffer = Concat(buffer, data);
                             var header = 2;
@@ -147,17 +145,13 @@ namespace Sandbox
                             incoming(opcode, messageBody);
                             return false;
                         },
+                        _ => false,
                         ex =>
                         {
-                            //Console.WriteLine(path + " error");
-                        },
-                        () =>
-                        {
                             Console.WriteLine("complete");
-                            complete();
-                        });
-
-                    return () => cancel = true;
+                            end(ex);
+                        },
+                        cancel);
                 };
         }
 
