@@ -52,6 +52,7 @@ namespace Firefly.Utils
 
         private ISocketEvent _socketEvent;
         private bool _disposed;
+        private Action _socketEventCompleted;
 
         enum State
         {
@@ -65,8 +66,6 @@ namespace Firefly.Utils
             _socket = socket;
             _state = State.Immediate;
             _socketEvent = _service.Memory.AllocSocketEvent();
-            //TODO: alloc an action field lazily. assign that field to this property only while an async operation is outstanding
-            _socketEvent.Completed = SocketEventCompleted;
         }
 
         ~SocketSender()
@@ -307,11 +306,24 @@ namespace Firefly.Utils
             // cursor is advanced past this point, further buffering will copy after this mark 
             _tail.Data = new ArraySegment<byte>(_tail.Data.Array, _tail.Data.Offset + _tail.Data.Count, 0);
 
-            return _socket.SendAsync(_socketEvent);
+            // alloc an action field lazily. assign that field to this property only while an async operation is outstanding
+            if (_socketEventCompleted == null)
+            {
+                _socketEventCompleted = SocketEventCompleted;
+            }
+            _socketEvent.Completed = _socketEventCompleted;
+            if (!_socket.SendAsync(_socketEvent))
+            {
+                _socketEvent.Completed = null;
+                return false;
+            }
+            return true;
         }
 
         private void SendEnd()
         {
+            _socketEvent.Completed = null;
+
             //TODO: _asyncEvent socketerror? 
 
             //TODO: must not assume BytesTransferred == entire _sending array + tail?
