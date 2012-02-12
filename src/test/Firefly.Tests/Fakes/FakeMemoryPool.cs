@@ -53,5 +53,14 @@ namespace Firefly.Tests.Fakes
         {
             FreeByte(segment.Array);
         }
+
+        public ISocketEvent AllocSocketEvent()
+        {
+            return new FakeSocketEvent();
+        }
+
+        public void FreeSocketEvent(ISocketEvent socketEvent)
+        {            
+        }
     }
 }

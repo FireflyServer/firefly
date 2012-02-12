@@ -50,7 +50,7 @@ namespace Firefly.Utils
         private IList<SegmentData> _sending = new List<SegmentData>();
 
 
-        private SocketAsyncEventArgs _socketEvent;
+        private ISocketEvent _socketEvent;
         private bool _disposed;
 
         enum State
@@ -64,8 +64,9 @@ namespace Firefly.Utils
             _service = service;
             _socket = socket;
             _state = State.Immediate;
-            _socketEvent = new SocketAsyncEventArgs();
-            _socketEvent.Completed += SocketEventCompleted;
+            _socketEvent = _service.Memory.AllocSocketEvent();
+            //TODO: alloc an action field lazily. assign that field to this property only while an async operation is outstanding
+            _socketEvent.Completed = SocketEventCompleted;
         }
 
         ~SocketSender()
@@ -108,11 +109,10 @@ namespace Firefly.Utils
             }
         }
 
-        void SocketEventCompleted(object sender, SocketAsyncEventArgs e)
+        void SocketEventCompleted()
         {
             lock (_sync)
             {
-                Debug.Assert(ReferenceEquals(e, _socketEvent));
                 Debug.Assert(_socketEvent.LastOperation == SocketAsyncOperation.Send);
                 DoSendCompleted();
             }

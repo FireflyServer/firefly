@@ -28,5 +28,18 @@ namespace Firefly.Utils
         /// </summary>
         /// <param name="segment">The sub-block that was originally returned by a call to AllocSegment.</param>
         void FreeSegment(ArraySegment<byte> segment);
+
+        /// <summary>
+        /// Acquire an ISocketEvent abstraction of the SocketAsyncEventArgs class, which is pooled because it is 
+        /// relatively expensive to create and destroy
+        /// </summary>
+        /// <returns>An abstraction of the SocketAsyncEventArgs</returns>
+        ISocketEvent AllocSocketEvent();
+
+        /// <summary>
+        /// Pool a socket event that was acquired by AllocSocketEvent
+        /// </summary>
+        /// <param name="socketEvent">The thing</param>
+        void FreeSocketEvent(ISocketEvent socketEvent);
     }
 }

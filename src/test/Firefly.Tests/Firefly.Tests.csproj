@@ -57,6 +57,7 @@
     <Compile Include="Fakes\FakeRequestBody.cs" />
     <Compile Include="Fakes\FakeServices.cs" />
     <Compile Include="Fakes\FakeSocket.cs" />
+    <Compile Include="Fakes\FakeSocketEvent.cs" />
     <Compile Include="Fakes\FakeTrace.cs" />
     <Compile Include="Http\BatonTests.cs" />
     <Compile Include="Http\ConnectionTests.cs" />

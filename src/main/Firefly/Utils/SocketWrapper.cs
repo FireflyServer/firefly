@@ -35,9 +35,9 @@ namespace Firefly.Utils
             return _socket.Receive(buffer, offset, size, socketFlags, out errorCode);
         }
 
-        public bool ReceiveAsync(SocketAsyncEventArgs e)
+        public bool ReceiveAsync(ISocketEvent socketEvent)
         {
-            return _socket.ReceiveAsync(e);
+            return _socket.ReceiveAsync(((SocketEventWrapper)socketEvent).SocketAsyncEventArgs);
         }
 
         public int Send(IList<ArraySegment<byte>> buffers, SocketFlags socketFlags, out SocketError errorCode)
@@ -45,9 +45,9 @@ namespace Firefly.Utils
             return _socket.Send(buffers, socketFlags, out errorCode);
         }
 
-        public bool SendAsync(SocketAsyncEventArgs e)
+        public bool SendAsync(ISocketEvent socketEvent)
         {
-            return _socket.SendAsync(e);
+            return _socket.SendAsync(((SocketEventWrapper)socketEvent).SocketAsyncEventArgs);
         }
 
         public void Shutdown(SocketShutdown how)

@@ -25,7 +25,7 @@ namespace Firefly.Tests.Fakes
         public int OutputWindow { get; set; }
 
         public bool ReceiveAsyncPaused { get; set; }
-        public SocketAsyncEventArgs ReceiveAsyncArgs { get; set; }
+        public ISocketEvent ReceiveAsyncArgs { get; set; }
 
         public bool DisconnectCalled { get; set; }
         public bool ShutdownSendCalled { get; set; }
@@ -43,7 +43,7 @@ namespace Firefly.Tests.Fakes
 
         public void Add(string text)
         {
-            ContextCallback callback;
+            Action callback;
             lock (_receiveLock)
             {
                 var buffer = new ArraySegment<byte>(Encoding.GetBytes(text));
@@ -55,7 +55,7 @@ namespace Firefly.Tests.Fakes
             }
             if (callback != null)
             {
-                callback(null);
+                callback();
             }
         }
 
@@ -83,7 +83,7 @@ namespace Firefly.Tests.Fakes
             return bytesTransfered;
         }
 
-        ContextCallback TryReceiveAsync()
+        Action TryReceiveAsync()
         {
             lock (_receiveLock)
             {
@@ -94,9 +94,9 @@ namespace Firefly.Tests.Fakes
                 ReceiveAsyncArgs = null;
 
                 var bytesTransferred = TakeInput(new ArraySegment<byte>(args.Buffer, args.Offset, args.Count));
-                SetField(args, "m_BytesTransferred", bytesTransferred);
-                SetField(args, "m_SocketError", SocketError.Success);
-                return (ContextCallback)GetField(args, "m_ExecutionCallback");
+                ((FakeSocketEvent) args).BytesTransferred = bytesTransferred;
+                ((FakeSocketEvent)args).SocketError = SocketError.Success;
+                return ((FakeSocketEvent)args).Completed;                
             }
         }
 
@@ -121,7 +121,7 @@ namespace Firefly.Tests.Fakes
             }
         }
 
-        public bool ReceiveAsync(SocketAsyncEventArgs e)
+        public bool ReceiveAsync(ISocketEvent socketEvent)
         {
             lock (_receiveLock)
             {
@@ -129,24 +129,9 @@ namespace Firefly.Tests.Fakes
                     throw new InvalidOperationException("FakeSocket.Receive cannot be called when ReceiveCalled is true");
 
                 ReceiveAsyncPaused = true;
-                ReceiveAsyncArgs = e;
+                ReceiveAsyncArgs = socketEvent;
                 return TryReceiveAsync() == null;
             }
-        }
-
-        private static void SetField(object obj, string fieldName, object fieldValue)
-        {
-            var fieldInfo = obj.GetType().GetField(
-                fieldName,
-                BindingFlags.NonPublic | BindingFlags.SetField | BindingFlags.Instance);
-            fieldInfo.SetValue(obj, fieldValue);
-        }
-        private static object GetField(object obj, string fieldName)
-        {
-            var fieldInfo = obj.GetType().GetField(
-                fieldName,
-                BindingFlags.NonPublic | BindingFlags.GetField | BindingFlags.Instance);
-            return fieldInfo.GetValue(obj);
         }
 
         public int Send(IList<ArraySegment<byte>> buffers, SocketFlags socketFlags, out SocketError errorCode)
@@ -173,17 +158,17 @@ namespace Firefly.Tests.Fakes
         }
 
 
-        public bool SendAsync(SocketAsyncEventArgs e)
+        public bool SendAsync(ISocketEvent socketEvent)
         {
             lock (_sendLock)
             {
-                var buffers = e.BufferList ?? new[] { new ArraySegment<byte>(e.Buffer, e.Offset, e.Count) };
+                var buffers = socketEvent.BufferList ?? new[] { new ArraySegment<byte>(socketEvent.Buffer, socketEvent.Offset, socketEvent.Count) };
 
-                var byteTransfered = GiveOutput(new ArraySegment<byte>(e.Buffer, e.Offset, e.Count));
+                var byteTransfered = GiveOutput(new ArraySegment<byte>(socketEvent.Buffer, socketEvent.Offset, socketEvent.Count));
                 var errorCode = byteTransfered == 0 ? SocketError.IOPending : SocketError.Success;
 
-                SetField(e, "m_SocketError", errorCode);
-                SetField(e, "m_BytesTransferred", byteTransfered);
+                ((FakeSocketEvent) socketEvent).SocketError = errorCode;
+                ((FakeSocketEvent)socketEvent).BytesTransferred = byteTransfered;
                 return errorCode == SocketError.IOPending;
             }
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Sockets;
 
 namespace Firefly.Utils
 {
@@ -108,5 +109,14 @@ namespace Firefly.Utils
             FreeByte(segment.Array);
         }
 
+        public ISocketEvent AllocSocketEvent()
+        {
+            return new SocketEventWrapper(new SocketAsyncEventArgs());
+        }
+
+        public void FreeSocketEvent(ISocketEvent socketEvent)
+        {
+            socketEvent.Dispose();
+        }
     }
 }
