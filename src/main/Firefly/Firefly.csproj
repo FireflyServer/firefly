@@ -58,6 +58,7 @@
     <Compile Include="Utils\MemoryPoolTextWriter.cs" />
     <Compile Include="Utils\NullServerTrace.cs" />
     <Compile Include="Utils\SocketWrapper.cs" />
+    <Compile Include="Utils\SocketSender.cs" />
     <Compile Include="Workaround.cs" />
   </ItemGroup>
   <ItemGroup>

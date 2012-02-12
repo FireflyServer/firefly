@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 
 namespace Firefly.Utils
@@ -18,6 +19,12 @@ namespace Firefly.Utils
             set { _socket.Blocking = value; }
         }
 
+        public bool NoDelay
+        {
+            get { return _socket.NoDelay; }
+            set { _socket.NoDelay = value; }
+        }
+
         public bool Connected
         {
             get { return _socket.Connected; }
@@ -33,19 +40,14 @@ namespace Firefly.Utils
             return _socket.ReceiveAsync(e);
         }
 
-        public int Send(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode)
+        public int Send(IList<ArraySegment<byte>> buffers, SocketFlags socketFlags, out SocketError errorCode)
         {
-            return _socket.Send(buffer, offset, size, socketFlags, out errorCode);
+            return _socket.Send(buffers, socketFlags, out errorCode);
         }
 
         public bool SendAsync(SocketAsyncEventArgs e)
         {
             return _socket.SendAsync(e);
-        }
-
-        public void WaitToSend()
-        {
-            Socket.Select(null, new List<Socket> { _socket }, null, -1);
         }
 
         public void Shutdown(SocketShutdown how)

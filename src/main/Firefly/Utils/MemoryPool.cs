@@ -97,5 +97,16 @@ namespace Firefly.Utils
                     break;
             }
         }
+
+        public ArraySegment<byte> AllocSegment(int minimumSize)
+        {
+            return new ArraySegment<byte>(AllocByte(minimumSize));
+        }
+
+        public void FreeSegment(ArraySegment<byte> segment)
+        {
+            FreeByte(segment.Array);
+        }
+
     }
 }

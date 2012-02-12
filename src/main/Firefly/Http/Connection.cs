@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
@@ -12,6 +13,7 @@ namespace Firefly.Http
         private readonly IFireflyService _services;
         private readonly AppDelegate _app;
         private readonly ISocket _socket;
+        private ISocketSender _socketSender;
         private readonly Action<ISocket> _disconnected;
 
         private Baton _baton;
@@ -26,6 +28,7 @@ namespace Firefly.Http
             _services = services;
             _app = app;
             _socket = socket;
+            _socketSender = new SocketSender(_services, _socket);
             _disconnected = disconnected;
         }
 
@@ -70,6 +73,7 @@ namespace Firefly.Http
             try
             {
                 _socket.Blocking = false;
+                _socket.NoDelay = true;
                 Go(true);
             }
             catch (Exception ex)
@@ -88,8 +92,8 @@ namespace Firefly.Http
                 {
                     Services = _services,
                     App = _app,
-                    Write = data => ProduceData(data, null),
-                    Flush = _ => false,
+                    Write = _socketSender.Write,
+                    Flush = _socketSender.Flush,
                     End = ProduceEnd
                 });
 
@@ -144,170 +148,48 @@ namespace Firefly.Http
             }
         }
 
-        struct SendInfo
-        {
-            public int BytesSent { get; set; }
-            public SocketError SocketError { get; set; }
-        }
-
-        private bool ProduceData(ArraySegment<byte> data, Action callback)
-        {
-            // Rogue value implies shutdown send (used for 1.0 clients)
-            if (data.Array == null)
-            {
-                _socket.Shutdown(SocketShutdown.Send);
-                return false;
-            }
-
-            if (callback == null)
-            {
-                DoProduce(data);
-                return false;
-            }
-
-            return DoProduce(data, callback);
-        }
-
-        private void DoProduce(ArraySegment<byte> data)
-        {
-            var remaining = data;
-
-            while (remaining.Count != 0)
-            {
-                SocketError errorCode;
-                var sent = _socket.Send(remaining.Array, remaining.Offset, remaining.Count, SocketFlags.None, out errorCode);
-                if (errorCode != SocketError.Success)
-                {
-                    _services.Trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
-                    break;
-                }
-                if (sent == remaining.Count)
-                {
-                    break;
-                }
-
-                remaining = new ArraySegment<byte>(
-                    remaining.Array,
-                    remaining.Offset + sent,
-                    remaining.Count - sent);
-
-                // BLOCK - enters a wait state for sync output waiting for kernel buffer to be writable
-                //Socket.Select(null, new List<Socket> { _socket }, null, -1);
-                _socket.WaitToSend();
-            }
-        }
-
-        // ReSharper disable AccessToModifiedClosure
-        private bool DoProduce(ArraySegment<byte> data, Action callback)
-        {
-            var remaining = data;
-
-            while (remaining.Count != 0)
-            {
-                var info = DoSend(
-                    remaining,
-                    asyncInfo =>
-                    {
-                        if (asyncInfo.SocketError != SocketError.Success)
-                        {
-                            _services.Trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
-                            callback();
-                            return;
-                        }
-                        if (asyncInfo.BytesSent == remaining.Count)
-                        {
-                            callback();
-                            return;
-                        }
-
-                        if (!DoProduce(
-                            new ArraySegment<byte>(
-                                remaining.Array,
-                                remaining.Offset + asyncInfo.BytesSent,
-                                remaining.Count - asyncInfo.BytesSent),
-                            callback))
-                        {
-                            callback();
-                        }
-                    });
-                if (info.SocketError == SocketError.IOPending)
-                {
-                    return true;
-                }
-                if (info.SocketError != SocketError.Success)
-                {
-                    _services.Trace.Event(TraceEventType.Warning, TraceMessage.ConnectionSendSocketError);
-                    break;
-                }
-                if (info.BytesSent == remaining.Count)
-                {
-                    break;
-                }
-
-                remaining = new ArraySegment<byte>(
-                        remaining.Array,
-                        remaining.Offset + info.BytesSent,
-                        remaining.Count - info.BytesSent);
-            }
-            return false;
-        }
-        // ReSharper restore AccessToModifiedClosure
-
-        private SendInfo DoSend(ArraySegment<byte> data, Action<SendInfo> callback)
-        {
-            var e = new SocketAsyncEventArgs();
-            e.Completed +=
-                (_, __) =>
-                {
-                    e.Dispose();
-                    callback(new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError });
-                };
-            e.SetBuffer(data.Array, data.Offset, data.Count);
-            var delayed = _socket.SendAsync(e);
-
-            if (delayed)
-            {
-                return new SendInfo { SocketError = SocketError.IOPending };
-            }
-
-            e.Dispose();
-            return new SendInfo { BytesSent = e.BytesTransferred, SocketError = e.SocketError };
-        }
 
         private void ProduceEnd(ProduceEndType endType)
         {
-            switch (endType)
-            {
-                case ProduceEndType.SocketShutdownSend:
-                    _socket.Shutdown(SocketShutdown.Send);
-                    break;
-                case ProduceEndType.ConnectionKeepAlive:
-                    ThreadPool.QueueUserWorkItem(_ => Go(true));
-                    break;
-                case ProduceEndType.SocketDisconnect:
-                    _services.Trace.Event(TraceEventType.Stop, TraceMessage.Connection);
-
-                    _baton.Free();
-
-                    _socketReceiveAsyncEventArgs.Dispose();
-                    _socketReceiveAsyncEventArgs = null;
-                    _socket.Shutdown(SocketShutdown.Receive);
-
-                    var e = new SocketAsyncEventArgs();
-                    Action cleanup =
-                        () =>
-                        {
-                            e.Dispose();
-                            _disconnected(_socket);
-                        };
-
-                    e.Completed += (_, __) => cleanup();
-                    if (!_socket.DisconnectAsync(e))
+            Action drained =
+                () =>
                     {
-                        cleanup();
-                    }
-                    break;
-            }
+                        switch (endType)
+                        {
+                            case ProduceEndType.SocketShutdownSend:
+                                _socket.Shutdown(SocketShutdown.Send);
+                                break;
+                            case ProduceEndType.ConnectionKeepAlive:
+                                ThreadPool.QueueUserWorkItem(_ => Go(true));
+                                break;
+                            case ProduceEndType.SocketDisconnect:
+                                _services.Trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+
+                                _baton.Free();
+
+                                _socketReceiveAsyncEventArgs.Dispose();
+                                _socketReceiveAsyncEventArgs = null;
+                                _socket.Shutdown(SocketShutdown.Receive);
+
+                                var e = new SocketAsyncEventArgs();
+                                Action cleanup =
+                                    () =>
+                                        {
+                                            e.Dispose();
+                                            _disconnected(_socket);
+                                        };
+
+                                e.Completed += (_, __) => cleanup();
+                                if (!_socket.DisconnectAsync(e))
+                                {
+                                    cleanup();
+                                }
+                                break;
+                        }
+                    };
+
+            if (!_socketSender.Flush(drained))
+                drained.Invoke();
         }
 
 

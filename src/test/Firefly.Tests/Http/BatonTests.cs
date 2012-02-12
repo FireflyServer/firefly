@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Firefly.Tests.Extensions;
 using Firefly.Utils;
 using Firefly.Http;
 using Firefly.Tests.Fakes;

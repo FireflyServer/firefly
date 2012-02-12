@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
@@ -17,9 +18,11 @@ namespace Firefly.Tests.Fakes
         public FakeSocket()
         {
             Encoding = Encoding.Default;
+            OutputWindow = 0x2000;
         }
 
         public Encoding Encoding { get; set; }
+        public int OutputWindow { get; set; }
 
         public bool ReceiveAsyncPaused { get; set; }
         public SocketAsyncEventArgs ReceiveAsyncArgs { get; set; }
@@ -69,12 +72,13 @@ namespace Firefly.Tests.Fakes
                 return bytesTransferred;
             }
         }
-        private int GiveOutput(ArraySegment<byte> buffer)
+        int GiveOutput(ArraySegment<byte> buffer)
         {
-            var bytesTransfered = buffer.Count;
-            var combined = new ArraySegment<byte>(new byte[_output.Count + buffer.Count]);
+            var windowAvailable = OutputWindow - _output.Count;
+            var bytesTransfered = Math.Min(buffer.Count, windowAvailable);
+            var combined = new ArraySegment<byte>(new byte[_output.Count + bytesTransfered]);
             Array.Copy(_output.Array, _output.Offset, combined.Array, 0, _output.Count);
-            Array.Copy(buffer.Array, buffer.Offset, combined.Array, _output.Count, buffer.Count);
+            Array.Copy(buffer.Array, buffer.Offset, combined.Array, _output.Count, bytesTransfered);
             _output = combined;
             return bytesTransfered;
         }
@@ -100,7 +104,7 @@ namespace Firefly.Tests.Fakes
         // ISocket follows
 
         public bool Blocking { get; set; }
-
+        public bool NoDelay { get; set; }
         public bool Connected { get; private set; }
 
 
@@ -145,13 +149,26 @@ namespace Firefly.Tests.Fakes
             return fieldInfo.GetValue(obj);
         }
 
-        public int Send(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode)
+        public int Send(IList<ArraySegment<byte>> buffers, SocketFlags socketFlags, out SocketError errorCode)
         {
             lock (_sendLock)
             {
-                var byteTransfered = GiveOutput(new ArraySegment<byte>(buffer, offset, size));
-                errorCode = byteTransfered == 0 ? SocketError.Success : SocketError.WouldBlock;
-                return byteTransfered;
+                errorCode = SocketError.Success;
+                var totalBytes = 0;
+                foreach (var buffer in buffers)
+                {
+                    var bytes = GiveOutput(buffer);
+                    totalBytes += bytes;
+                    if (bytes != 0 && bytes != buffer.Count)
+                    {
+                        errorCode = SocketError.WouldBlock;
+                    }
+                    if (bytes != buffer.Count)
+                    {
+                        return totalBytes;
+                    }
+                }
+                return totalBytes;
             }
         }
 
@@ -160,23 +177,21 @@ namespace Firefly.Tests.Fakes
         {
             lock (_sendLock)
             {
+                var buffers = e.BufferList ?? new[] { new ArraySegment<byte>(e.Buffer, e.Offset, e.Count) };
+
                 var byteTransfered = GiveOutput(new ArraySegment<byte>(e.Buffer, e.Offset, e.Count));
-                var errorCode = byteTransfered == 0 ? SocketError.WouldBlock : SocketError.Success;
+                var errorCode = byteTransfered == 0 ? SocketError.IOPending : SocketError.Success;
 
                 SetField(e, "m_SocketError", errorCode);
                 SetField(e, "m_BytesTransferred", byteTransfered);
-                return false;
+                return errorCode == SocketError.IOPending;
             }
         }
 
-        public void WaitToSend()
-        {
-            throw new NotImplementedException();
-        }
 
         public void Shutdown(SocketShutdown how)
         {
-            switch(how)
+            switch (how)
             {
                 case SocketShutdown.Send:
                     ShutdownSendCalled = true;

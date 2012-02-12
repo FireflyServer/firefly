@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Firefly.Http;
+using Firefly.Tests.Extensions;
 using Firefly.Tests.Http;
 using Firefly.Utils;
 using Gate;

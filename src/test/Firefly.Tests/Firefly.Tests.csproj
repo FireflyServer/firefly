@@ -66,9 +66,10 @@
     <Compile Include="Http\FrameTests.cs" />
     <Compile Include="Http\FrameTestsBase.cs" />
     <Compile Include="Http\ServerTests.cs" />
-    <Compile Include="Extensions\SocketExtensions.cs" />
+    <Compile Include="Extensions\TextExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\MemoryPoolTextWriterTests.cs" />
+    <Compile Include="Utils\WriteSocketTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

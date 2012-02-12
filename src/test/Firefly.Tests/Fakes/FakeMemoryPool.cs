@@ -43,5 +43,15 @@ namespace Firefly.Tests.Fakes
                 ++FreeCharCount;
             }
         }
+
+        public ArraySegment<byte> AllocSegment(int minimumSize)
+        {
+            return new ArraySegment<byte>(AllocByte(minimumSize));
+        }
+
+        public void FreeSegment(ArraySegment<byte> segment)
+        {
+            FreeByte(segment.Array);
+        }
     }
 }
