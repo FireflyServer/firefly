@@ -64,7 +64,7 @@ namespace Firefly.Http
             }
         }
 
-        public bool Consume(Baton baton, Action callback, Action<Exception> fault)
+        public bool Consume(Baton baton, Action<Frame> callback, Action<Exception> fault)
         {
             for (; ; )
             {
@@ -106,7 +106,7 @@ namespace Firefly.Http
                             () =>
                             {
                                 if (!Consume(baton, resumeBody, fault))
-                                    resumeBody.Invoke();
+                                    resumeBody.Invoke(this);
                             });
                         _keepAlive = _messageBody.RequestKeepAlive;
                         _mode = Mode.MessageBody;
@@ -115,7 +115,7 @@ namespace Firefly.Http
                         return true;
 
                     case Mode.MessageBody:
-                        return _messageBody.Consume(baton, callback, fault);
+                        return _messageBody.Consume(baton, ()=>callback(this), fault);
 
                     case Mode.Terminated:
                         return false;
@@ -123,7 +123,7 @@ namespace Firefly.Http
             }
         }
 
-        Action HandleExpectContinue(Action continuation)
+        Action<Frame> HandleExpectContinue(Action<Frame> continuation)
         {
             IEnumerable<string> expect;
             if (_httpVersion.Equals("HTTP/1.1") &&
@@ -131,20 +131,20 @@ namespace Firefly.Http
                 (expect.FirstOrDefault() ?? "").Equals("100-continue", StringComparison.OrdinalIgnoreCase))
             {
                 return
-                    () =>
+                    frame =>
                     {
                         if (_resultStarted)
                         {
-                            continuation.Invoke();
+                            continuation.Invoke(frame);
                         }
                         else
                         {
                             var bytes = Encoding.Default.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
                             var isasync =
                                 _context.Write(new ArraySegment<byte>(bytes)) &&
-                                _context.Flush(continuation);
+                                _context.Flush(()=>continuation(frame));
                             if (!isasync)
-                                continuation.Invoke();
+                                continuation.Invoke(frame);
                         }
                     };
             }
