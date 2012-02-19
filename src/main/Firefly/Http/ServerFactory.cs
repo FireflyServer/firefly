@@ -20,14 +20,13 @@ namespace Firefly.Http
         }
 
         public ServerFactory(IServerTrace trace)
-            : this(new FireflyService { Trace = trace })
+            : this(new FireflyService {Trace = trace})
         {
-
         }
 
         public ServerFactory(IFireflyService services)
         {
-            _services = services;            
+            _services = services;
         }
 
         public IDisposable Create(AppDelegate app, int port)
@@ -56,41 +55,23 @@ namespace Firefly.Http
 
             var stop = false;
             var acceptEvent = new SocketAsyncEventArgs();
-            Action accept =
-                () =>
+            Action accept = () =>
+            {
+                while (!stop)
                 {
-                    while (!stop)
+                    _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptAsync);
+
+                    if (listenSocket.AcceptAsync(acceptEvent))
                     {
-                        _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptAsync);
-
-                        if (listenSocket.AcceptAsync(acceptEvent))
-                            return;
-
-                        _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedSync);
-
-                        if (acceptEvent.SocketError != SocketError.Success)
-                        {
-                            _services.Trace.Event(TraceEventType.Error, TraceMessage.ServerFactoryAcceptSocketError);
-                        }
-
-                        if (acceptEvent.SocketError == SocketError.Success &&
-                            acceptEvent.AcceptSocket != null)
-                        {
-                            ThreadPool.QueueUserWorkItem(
-                                connectionExecute,
-                                new Connection(
-                                    _services,
-                                    app,
-                                    new SocketWrapper(acceptEvent.AcceptSocket),
-                                    OnDisconnect));
-                        }
-                        acceptEvent.AcceptSocket = null;
+                        return;
                     }
-                };
-            acceptEvent.Completed +=
-                (_, __) =>
-                {
-                    _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedAsync);
+
+                    _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedSync);
+
+                    if (acceptEvent.SocketError != SocketError.Success)
+                    {
+                        _services.Trace.Event(TraceEventType.Error, TraceMessage.ServerFactoryAcceptSocketError);
+                    }
 
                     if (acceptEvent.SocketError == SocketError.Success &&
                         acceptEvent.AcceptSocket != null)
@@ -104,8 +85,26 @@ namespace Firefly.Http
                                 OnDisconnect));
                     }
                     acceptEvent.AcceptSocket = null;
-                    accept();
-                };
+                }
+            };
+            acceptEvent.Completed += (_, __) =>
+            {
+                _services.Trace.Event(TraceEventType.Verbose, TraceMessage.ServerFactoryAcceptCompletedAsync);
+
+                if (acceptEvent.SocketError == SocketError.Success &&
+                    acceptEvent.AcceptSocket != null)
+                {
+                    ThreadPool.QueueUserWorkItem(
+                        connectionExecute,
+                        new Connection(
+                            _services,
+                            app,
+                            new SocketWrapper(acceptEvent.AcceptSocket),
+                            OnDisconnect));
+                }
+                acceptEvent.AcceptSocket = null;
+                accept();
+            };
             accept();
 
             return new Disposable(

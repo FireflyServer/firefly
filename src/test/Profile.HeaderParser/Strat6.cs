@@ -11,7 +11,6 @@ namespace Profile.HeaderParser
         public Strat6_3_WithListDictionary()
             : base(new ListDict())
         {
-
         }
 
         public override void AddRequestHeader(string name, string value)
@@ -23,7 +22,10 @@ namespace Profile.HeaderParser
         {
             var remaining = baton.Buffer;
             endOfHeaders = false;
-            if (remaining.Count < 2) return false;
+            if (remaining.Count < 2)
+            {
+                return false;
+            }
             var ch0 = remaining.Array[remaining.Offset];
             var ch1 = remaining.Array[remaining.Offset + 1];
             if (ch0 == '\r' && ch1 == '\n')
@@ -33,7 +35,10 @@ namespace Profile.HeaderParser
                 return true;
             }
 
-            if (remaining.Count < 3) return false;
+            if (remaining.Count < 3)
+            {
+                return false;
+            }
             var wrappedHeaders = false;
             var colonIndex = -1;
             var valueStartIndex = -1;
@@ -47,15 +52,20 @@ namespace Profile.HeaderParser
                     var ch2 = *scan++;
                     if (ch0 == '\r' &&
                         ch1 == '\n' &&
-                        ch2 != ' ' &&
-                        ch2 != '\t')
+                            ch2 != ' ' &&
+                                ch2 != '\t')
                     {
                         var name = Encoding.Default.GetString(remaining.Array, remaining.Offset, colonIndex);
                         var value = "";
                         if (valueEndIndex != -1)
-                            value = Encoding.Default.GetString(remaining.Array, remaining.Offset + valueStartIndex, valueEndIndex - valueStartIndex);
+                        {
+                            value = Encoding.Default.GetString(
+                                remaining.Array, remaining.Offset + valueStartIndex, valueEndIndex - valueStartIndex);
+                        }
                         if (wrappedHeaders)
+                        {
                             value = value.Replace("\r\n", " ");
+                        }
                         AddRequestHeader(name, value);
                         baton.Skip(index + 2);
                         return true;
@@ -66,19 +76,21 @@ namespace Profile.HeaderParser
                     }
                     else if (colonIndex != -1 &&
                         ch0 != ' ' &&
-                        ch0 != '\t' &&
-                        ch0 != '\r' &&
-                        ch0 != '\n')
+                            ch0 != '\t' &&
+                                ch0 != '\r' &&
+                                    ch0 != '\n')
                     {
                         if (valueStartIndex == -1)
+                        {
                             valueStartIndex = index;
+                        }
                         valueEndIndex = index + 1;
                     }
                     else if (!wrappedHeaders &&
                         ch0 == '\r' &&
-                        ch1 == '\n' &&
-                        (ch2 == ' ' ||
-                        ch2 == '\t'))
+                            ch1 == '\n' &&
+                                (ch2 == ' ' ||
+                                    ch2 == '\t'))
                     {
                         wrappedHeaders = true;
                     }
@@ -128,7 +140,7 @@ namespace Profile.HeaderParser
 
         void ICollection<KeyValuePair<string, string>>.CopyTo(KeyValuePair<string, string>[] array, int arrayIndex)
         {
-            List.CopyTo(array,arrayIndex);
+            List.CopyTo(array, arrayIndex);
         }
 
         bool ICollection<KeyValuePair<string, string>>.Remove(KeyValuePair<string, string> item)
@@ -138,12 +150,18 @@ namespace Profile.HeaderParser
 
         int ICollection<KeyValuePair<string, string>>.Count
         {
-            get { return List.Count; }
+            get
+            {
+                return List.Count;
+            }
         }
 
         bool ICollection<KeyValuePair<string, string>>.IsReadOnly
         {
-            get { return false; }
+            get
+            {
+                return false;
+            }
         }
 
         #endregion
@@ -157,7 +175,7 @@ namespace Profile.HeaderParser
 
         void IDictionary<string, string>.Add(string key, string value)
         {
-            List.Add(new KeyValuePair<string, string>(key,value));
+            List.Add(new KeyValuePair<string, string>(key, value));
         }
 
         bool IDictionary<string, string>.Remove(string key)
@@ -181,18 +199,30 @@ namespace Profile.HeaderParser
 
         string IDictionary<string, string>.this[string key]
         {
-            get { throw new NotImplementedException(); }
-            set { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
         }
 
         ICollection<string> IDictionary<string, string>.Keys
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         ICollection<string> IDictionary<string, string>.Values
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         #endregion

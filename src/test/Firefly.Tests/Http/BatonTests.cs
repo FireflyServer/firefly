@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using Firefly.Tests.Extensions;
-using Firefly.Utils;
 using Firefly.Http;
+using Firefly.Tests.Extensions;
 using Firefly.Tests.Fakes;
 using Xunit;
 
@@ -31,7 +28,7 @@ namespace Firefly.Tests.Http
         public void TakeAdvancesBufferAndReturnsTakenSegment()
         {
             // Arrange
-            var baton = new Baton(new FakeMemoryPool()) { Buffer = "xxhello world".ToArraySegment() };
+            var baton = new Baton(new FakeMemoryPool()) {Buffer = "xxhello world".ToArraySegment()};
             baton.Skip(2);
 
             // Act
@@ -49,7 +46,7 @@ namespace Firefly.Tests.Http
         public void ExtendCausesArraySegmentToIncludeMoreBytesAtTheEnd()
         {
             // Arrange
-            var baton = new Baton(new FakeMemoryPool()) { Buffer = "xxhello worldxx".ToArraySegment() };
+            var baton = new Baton(new FakeMemoryPool()) {Buffer = "xxhello worldxx".ToArraySegment()};
             baton.Buffer = new ArraySegment<byte>(baton.Buffer.Array, 2, 5);
 
             // Act
@@ -68,7 +65,7 @@ namespace Firefly.Tests.Http
         public void AvailableBufferReturnsAreaThatIsUnused()
         {
             // Arrange
-            var baton = new Baton(new FakeMemoryPool()) { Buffer = "xxhello worldxx".ToArraySegment() };
+            var baton = new Baton(new FakeMemoryPool()) {Buffer = "xxhello worldxx".ToArraySegment()};
             baton.Buffer = new ArraySegment<byte>(baton.Buffer.Array, 2, 5);
 
             // Act
@@ -83,7 +80,7 @@ namespace Firefly.Tests.Http
         public void AvailableBufferBringsOffsetBackToZeroIfOccupiedSegmentIsZeroLength()
         {
             // Arrange
-            var baton = new Baton(new FakeMemoryPool()) { Buffer = "xxhello worldxx".ToArraySegment() };
+            var baton = new Baton(new FakeMemoryPool()) {Buffer = "xxhello worldxx".ToArraySegment()};
             baton.Buffer = new ArraySegment<byte>(baton.Buffer.Array, 2, 0);
 
             // Act

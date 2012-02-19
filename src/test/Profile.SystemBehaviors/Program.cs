@@ -12,6 +12,7 @@ namespace Profile.SystemBehaviors
         static void Main(string[] args)
         {
         }
+
         private static void Test()
         {
             var socket1 = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
@@ -27,10 +28,10 @@ namespace Profile.SystemBehaviors
 
             var data = Enumerable.Range(0, 30000).Aggregate("", (a, b) => a + "Hello World!").ToArraySegment();
             int totalSent = 0;
-            for (; ; )
+            for (;;)
             {
                 SocketError errorCode;
-                var sent = socket3.Send(new[] { data }, SocketFlags.Partial, out errorCode);
+                var sent = socket3.Send(new[] {data}, SocketFlags.Partial, out errorCode);
                 Console.WriteLine("{0} {1} {2}", totalSent, sent, errorCode);
                 totalSent += sent;
                 if (errorCode != SocketError.Success)
@@ -55,7 +56,7 @@ namespace Profile.SystemBehaviors
                     totalSent += b.BytesTransferred;
 
                     SocketError errorCode;
-                    var sent = socket3.Send(new[] { data }, SocketFlags.Partial, out errorCode);
+                    var sent = socket3.Send(new[] {data}, SocketFlags.Partial, out errorCode);
                     totalSent += sent;
                     Console.WriteLine(totalSent + " " + sent + " " + DateTime.UtcNow + y);
 
@@ -80,9 +81,6 @@ namespace Profile.SystemBehaviors
                 var receiveCount = socket2.Receive(new byte[100]);
                 receiveTotal += receiveCount;
             }
-
-
         }
-
     }
 }

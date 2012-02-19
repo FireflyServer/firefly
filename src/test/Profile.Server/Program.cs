@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using Firefly.Http;
 using Firefly.Utils;
 using Owin;
@@ -29,16 +25,16 @@ namespace Profile.Server
             using (new ServerFactory(new Tracer()).Create(App, 9090))
             {
                 Console.WriteLine("Enter exit to exit:");
-                for (; ; )
+                for (;;)
                 {
                     var cmd = Console.ReadLine();
                     switch (cmd)
                     {
-                        case "gc":
-                            GC.Collect();
-                            break;
-                        case "exit":
-                            return;
+                    case "gc":
+                        GC.Collect();
+                        break;
+                    case "exit":
+                        return;
                     }
                 }
             }
@@ -51,18 +47,18 @@ namespace Profile.Server
                 var requestPath = (string)env[OwinConstants.RequestPath];
                 switch (requestPath)
                 {
-                    case "/baseline":
-                        Baseline(env, result, fault);
-                        break;
-                    case "/favicon.ico":
-                        Baseline(env, result, fault);
-                        break;
-                    case "/":
-                        Welcome(env, result, fault);
-                        break;
-                    default:
-                        NotFound(env, result, fault);
-                        break;
+                case "/baseline":
+                    Baseline(env, result, fault);
+                    break;
+                case "/favicon.ico":
+                    Baseline(env, result, fault);
+                    break;
+                case "/":
+                    Welcome(env, result, fault);
+                    break;
+                default:
+                    NotFound(env, result, fault);
+                    break;
                 }
             }
             catch (Exception ex)
@@ -83,28 +79,28 @@ namespace Profile.Server
             result(
                 "404 Not Found",
                 new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    {"Content-Type", new[] {"text/plain"}},
+                    {"Content-Length", new[] {"0"}},
+                },
+                (write, flush, end, cancel) =>
+                {
+                    try
                     {
-                        {"Content-Type", new[] {"text/plain"}},
-                        {"Content-Length", new[] {"0"}},
-                    },
-                    (write, flush, end, cancel) =>
+                        end(null);
+                    }
+                    catch (Exception ex)
                     {
                         try
                         {
-                            end(null);
+                            end(ex);
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            try
-                            {
-                                end(ex);
-                            }
-                            catch
-                            {
-                                Console.WriteLine(ex.Message);
-                            }
+                            Console.WriteLine(ex.Message);
                         }
                     }
+                }
                 );
         }
 
@@ -113,30 +109,30 @@ namespace Profile.Server
             result(
                 "200 OK",
                 new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    {"Content-Type", new[] {"text/plain"}},
+                    {"Content-Length", new[] {"8"}},
+                },
+                (write, flush, end, cancel) =>
+                {
+                    try
                     {
-                        {"Content-Type", new[] {"text/plain"}},
-                        {"Content-Length", new[] {"8"}},
-                    },
-                    (write, flush, end, cancel) =>
+                        var bytes = Encoding.Default.GetBytes("Baseline");
+                        write(new ArraySegment<byte>(bytes));
+                        end(null);
+                    }
+                    catch (Exception ex)
                     {
                         try
                         {
-                            var bytes = Encoding.Default.GetBytes("Baseline");
-                            write(new ArraySegment<byte>(bytes));
-                            end(null);
+                            end(ex);
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            try
-                            {
-                                end(ex);
-                            }
-                            catch
-                            {
-                                Console.WriteLine(ex.Message);
-                            }
+                            Console.WriteLine(ex.Message);
                         }
                     }
+                }
                 );
         }
 
@@ -145,34 +141,35 @@ namespace Profile.Server
             result(
                 "200 OK",
                 new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    {"Content-Type", new[] {"text/html"}},
+                    {"Content-Length", new[] {WelcomeText.Length.ToString()}},
+                },
+                (write, flush, end, cancel) =>
+                {
+                    try
                     {
-                        {"Content-Type", new[] {"text/html"}},
-                        {"Content-Length", new[] {WelcomeText.Length.ToString()}},
-                    },
-                    (write, flush, end, cancel) =>
+                        var bytes = Encoding.Default.GetBytes(WelcomeText);
+                        write(new ArraySegment<byte>(bytes));
+                        end(null);
+                    }
+                    catch (Exception ex)
                     {
                         try
                         {
-                            var bytes = Encoding.Default.GetBytes(WelcomeText);
-                            write(new ArraySegment<byte>(bytes));
-                            end(null);                            
+                            end(ex);
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            try
-                            {
-                                end(ex);
-                            }
-                            catch
-                            {
-                                Console.WriteLine(ex.Message);
-                            }
+                            Console.WriteLine(ex.Message);
                         }
                     }
+                }
                 );
         }
 
-        private static string WelcomeText = @"
+        private static string WelcomeText =
+            @"
 <!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Strict//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"">
 <html xmlns=""http://www.w3.org/1999/xhtml"">
 <head>
@@ -205,7 +202,5 @@ a img {
 </div>
 </body>
 </html>";
-
     }
-
 }

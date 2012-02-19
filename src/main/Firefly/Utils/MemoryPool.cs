@@ -18,7 +18,9 @@ namespace Firefly.Utils
                 lock (_sync)
                 {
                     if (_stack.Count != 0)
+                    {
                         return _stack.Pop();
+                    }
                 }
                 return new T[size];
             }
@@ -41,7 +43,10 @@ namespace Firefly.Utils
 
         public byte[] Empty
         {
-            get { return EmptyArray; }
+            get
+            {
+                return EmptyArray;
+            }
         }
 
         public byte[] AllocByte(int minimumSize)
@@ -63,15 +68,18 @@ namespace Firefly.Utils
 
         public void FreeByte(byte[] memory)
         {
-            if (memory == null) return;
+            if (memory == null)
+            {
+                return;
+            }
             switch (memory.Length)
             {
-                case 1024:
-                    _pool1.Free(memory, 256);
-                    break;
-                case 2048:
-                    _pool2.Free(memory, 64);
-                    break;
+            case 1024:
+                _pool1.Free(memory, 256);
+                break;
+            case 2048:
+                _pool2.Free(memory, 64);
+                break;
             }
         }
 
@@ -90,12 +98,15 @@ namespace Firefly.Utils
 
         public void FreeChar(char[] memory)
         {
-            if (memory == null) return;
+            if (memory == null)
+            {
+                return;
+            }
             switch (memory.Length)
             {
-                case 128:
-                    _pool3.Free(memory, 256);
-                    break;
+            case 128:
+                _pool3.Free(memory, 256);
+                break;
             }
         }
 

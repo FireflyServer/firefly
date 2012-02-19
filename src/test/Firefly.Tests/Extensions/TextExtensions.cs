@@ -29,6 +29,4 @@ namespace Firefly.Tests.Extensions
             stream.Write(bytes, 0, bytes.Length);
         }
     }
-
-
 }

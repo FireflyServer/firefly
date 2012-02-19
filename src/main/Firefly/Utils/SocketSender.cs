@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Sockets;
-using System.Threading;
 
 namespace Firefly.Utils
 {
     /// <summary>
-    /// Operations performed for buffered socket output
+    ///   Operations performed for buffered socket output
     /// </summary>
     public interface ISocketSender
     {
@@ -33,19 +32,19 @@ namespace Firefly.Utils
         }
 
         /// <summary>
-        /// _tail.Segment is the most recent allocation used to hold buffered data. 
-        /// _tail.Data spand the memory inside the _tail.Segment that has been buffered but has not started sending.
+        ///   _tail.Segment is the most recent allocation used to hold buffered data. 
+        ///   _tail.Data spand the memory inside the _tail.Segment that has been buffered but has not started sending.
         /// </summary>
         private SegmentData _tail;
 
         /// <summary>
-        /// _pushed contains the _tail that are displaced when _tail.Data has reached the end of _tail.Segment. 
-        /// The same Segment will never be in both _pushed and _tail at the same time.
+        ///   _pushed contains the _tail that are displaced when _tail.Data has reached the end of _tail.Segment. 
+        ///   The same Segment will never be in both _pushed and _tail at the same time.
         /// </summary>
         private IList<SegmentData> _pushed = new List<SegmentData>();
 
         /// <summary>
-        /// _sending contains the _pushed that were moved once an async send has been initiated.
+        ///   _sending contains the _pushed that were moved once an async send has been initiated.
         /// </summary>
         private IList<SegmentData> _sending = new List<SegmentData>();
 
@@ -127,7 +126,7 @@ namespace Firefly.Utils
             {
                 // send a synchronous chunk
                 SocketError errorCode;
-                var bytesTransfered = _socket.Send(new[] { remaining }, SocketFlags.None, out errorCode);
+                var bytesTransfered = _socket.Send(new[] {remaining}, SocketFlags.None, out errorCode);
 
                 remaining = new ArraySegment<byte>(
                     remaining.Array,
@@ -185,7 +184,8 @@ namespace Firefly.Utils
 
                 // copy the most number of bytes you can from the sender's remaining bytes to after the tail's data
                 var length = Math.Min(remaining.Count, tailAvailable);
-                Array.Copy(remaining.Array, remaining.Offset, _tail.Data.Array, _tail.Data.Offset + _tail.Data.Count, length);
+                Array.Copy(
+                    remaining.Array, remaining.Offset, _tail.Data.Array, _tail.Data.Offset + _tail.Data.Count, length);
 
                 // sender's remaining bytes shrink
                 remaining = new ArraySegment<byte>(remaining.Array, remaining.Offset + length, remaining.Count - length);
@@ -234,18 +234,17 @@ namespace Firefly.Utils
             else
             {
                 var prior = _drained;
-                _drained =
-                    () =>
+                _drained = () =>
+                {
+                    try
                     {
-                        try
-                        {
-                            drained();
-                        }
-                        catch
-                        {
-                        }
-                        prior();
-                    };
+                        drained();
+                    }
+                    catch
+                    {
+                    }
+                    prior();
+                };
             }
             return true;
         }
@@ -328,7 +327,7 @@ namespace Firefly.Utils
 
             //TODO: must not assume BytesTransferred == entire _sending array + tail?
             //  instead - clear incrementally? 
-            
+
 
             Debug.Assert(_state == State.Buffering);
             if (_sending.Count != 0)
@@ -348,8 +347,5 @@ namespace Firefly.Utils
                 _tail.Data = new ArraySegment<byte>(_tail.Segment.Array, _tail.Segment.Offset, 0);
             }
         }
-
-
-
     }
 }

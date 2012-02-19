@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading;
 using Firefly.Http;
 using Firefly.Tests.Extensions;
-using Firefly.Tests.Http;
 using Firefly.Utils;
 using Gate;
 using Gate.Adapters.Nancy;
@@ -26,7 +25,7 @@ namespace Sandbox
 
             //var workingTitleApp = StartupWorkingTitleApp();
 
-            for (; ; )
+            for (;;)
             {
                 var input = Console.ReadLine();
                 if (input == "exit")
@@ -39,12 +38,17 @@ namespace Sandbox
                 if (input == "1")
                 {
                     var request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:8080");
-                    try { request.GetResponse(); }
-                    catch (WebException ex) { Console.WriteLine(ex.Message); }
+                    try
+                    {
+                        request.GetResponse();
+                    }
+                    catch (WebException ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
                 }
                 else if (input == "2")
                 {
-
                     var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
                     socket.Connect("localhost", 8080);
                     var blocking = socket.Blocking;
@@ -61,7 +65,8 @@ namespace Sandbox
                         var wsabuf = new WSABUF();
                         uint numberOfBytesRecvd;
                         var flags = SocketFlags.None;
-                        var result = WSARecv(socket.Handle, ref wsabuf, 1, out numberOfBytesRecvd, ref flags, null, CallbackThunk1);
+                        var result = WSARecv(
+                            socket.Handle, ref wsabuf, 1, out numberOfBytesRecvd, ref flags, null, CallbackThunk1);
 
                         var lastError = result == -1 ? Marshal.GetLastWin32Error() : 0;
 
@@ -70,8 +75,15 @@ namespace Sandbox
                         var nativeOverlapped = overlapped.Pack(Iocb, null);
                         Trace.WriteLine(string.Format("{0}", new IntPtr(nativeOverlapped)));
 
-                        wsabuf = new WSABUF { buf = Marshal.AllocCoTaskMem(512), len = 512 };
-                        var result2 = WSARecv2(socket.Handle, ref wsabuf, 1, out numberOfBytesRecvd, ref flags, nativeOverlapped, IntPtr.Zero);
+                        wsabuf = new WSABUF {buf = Marshal.AllocCoTaskMem(512), len = 512};
+                        var result2 = WSARecv2(
+                            socket.Handle,
+                            ref wsabuf,
+                            1,
+                            out numberOfBytesRecvd,
+                            ref flags,
+                            nativeOverlapped,
+                            IntPtr.Zero);
                         var lastError2 = result2 == -1 ? Marshal.GetLastWin32Error() : 0;
 
                         var data = @"GET / HTTP/1.1
@@ -80,14 +92,18 @@ Connection: close
 
 ".ToArraySegment();
                         SocketError err;
-                        socket.BeginSend(data.Array, data.Offset, data.Count, SocketFlags.None, out err,
+                        socket.BeginSend(
+                            data.Array,
+                            data.Offset,
+                            data.Count,
+                            SocketFlags.None,
+                            out err,
                             ar =>
                             {
                                 socket.EndSend(ar);
                                 socket.Shutdown(SocketShutdown.Send);
-                            }, null);
-
-
+                            },
+                            null);
                     }
                 }
                 else
@@ -113,7 +129,8 @@ Connection: close
 
         private static readonly unsafe CompletionROUTINE CallbackThunk = Callback;
 
-        private static unsafe void Callback(uint dwerror, uint cbtransferred, NativeOverlapped* lpoverlapped, SocketFlags dwflags)
+        private static unsafe void Callback(
+            uint dwerror, uint cbtransferred, NativeOverlapped* lpoverlapped, SocketFlags dwflags)
         {
             Trace.WriteLine(string.Format("{0}", new IntPtr(lpoverlapped)));
             var overlapped = Overlapped.Unpack(lpoverlapped);
@@ -123,7 +140,8 @@ Connection: close
 
         private static readonly unsafe CompletionROUTINE CallbackThunk1 = Callback1;
 
-        private static unsafe void Callback1(uint dwerror, uint cbtransferred, NativeOverlapped* lpoverlapped, SocketFlags dwflags)
+        private static unsafe void Callback1(
+            uint dwerror, uint cbtransferred, NativeOverlapped* lpoverlapped, SocketFlags dwflags)
         {
             Trace.WriteLine(string.Format("1:{0}", new IntPtr(lpoverlapped)));
             var overlapped = Overlapped.Unpack(lpoverlapped);
@@ -180,7 +198,7 @@ Connection: close
         private static void Configuration(IAppBuilder builder)
         {
             builder
-                .Use<AppDelegate,string,string>(SetResponseHeader, "Server", "Firefly")
+                .Use<AppDelegate, string, string>(SetResponseHeader, "Server", "Firefly")
                 .Use(ShowCalls)
                 .UseWebSockets("/socketserver", OnConnection)
                 .UseChunked()
@@ -197,27 +215,26 @@ Connection: close
                     Console.WriteLine("Incoming opcode:{0}", opcode);
                     switch (opcode)
                     {
-                        case 1:
-                            Console.WriteLine(Encoding.Default.GetString(data.Array, data.Offset, data.Count));
-                            break;
+                    case 1:
+                        Console.WriteLine(Encoding.Default.GetString(data.Array, data.Offset, data.Count));
+                        break;
                     }
                     outgoing(opcode, data);
                 };
-
         }
 
         private static AppDelegate SetResponseHeader(AppDelegate app, string name, string value)
         {
             return
                 (env, result, fault) =>
-                app(
-                    env,
-                    (status, headers, body) =>
-                    {
-                        headers[name] = new[] { value };
-                        result(status, headers, body);
-                    },
-                    fault);
+                    app(
+                        env,
+                        (status, headers, body) =>
+                        {
+                            headers[name] = new[] {value};
+                            result(status, headers, body);
+                        },
+                        fault);
         }
 
         private static AppDelegate ShowCalls(AppDelegate app)
@@ -243,7 +260,8 @@ Connection: close
                             Console.WriteLine(kv.Key + " " + kv.Value);
                         }
                     }
-                    app(env,
+                    app(
+                        env,
                         (status, headers, body) =>
                         {
                             Console.WriteLine("----------");
@@ -274,22 +292,34 @@ Connection: close
     {
         public bool IsCompleted
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public WaitHandle AsyncWaitHandle
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public object AsyncState
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public bool CompletedSynchronously
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

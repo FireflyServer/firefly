@@ -39,27 +39,24 @@ namespace Firefly.Http
 
             _baton = new Baton(_services.Memory);
 
-            _fault = ex =>
-                         {
-                             Debug.WriteLine(ex.Message);
-                         };
+            _fault = ex => { Debug.WriteLine(ex.Message); };
 
             _receiveSocketEvent = _services.Memory.AllocSocketEvent();
             _receiveSocketEvent.SetBuffer(_services.Memory.Empty, 0, 0);
 
 
-            _frameConsumeCallback =
-                frame =>
-                    {
-                        try
-                        {
-                            Go(false, frame);
-                        }
-                        catch (Exception ex)
-                        {
-                            _fault(ex);
-                        }
-                    };
+            _frameConsumeCallback = frame =>
+            {
+                try
+                {
+                    Go(false, frame);
+                }
+                catch (Exception ex)
+                {
+                    _fault(ex);
+                }
+            };
+
             try
             {
                 _socket.Blocking = false;
@@ -77,14 +74,15 @@ namespace Firefly.Http
         {
             if (newFrame)
             {
-                frame = _frame = new Frame(new FrameContext
-                {
-                    Services = _services,
-                    App = _app,
-                    Write = _socketSender.Write,
-                    Flush = _socketSender.Flush,
-                    End = ProduceEnd
-                });
+                frame = _frame = new Frame(
+                    new FrameContext
+                    {
+                        Services = _services,
+                        App = _app,
+                        Write = _socketSender.Write,
+                        Flush = _socketSender.Flush,
+                        End = ProduceEnd
+                    });
 
                 if (_baton.Buffer.Count != 0)
                 {
@@ -113,7 +111,9 @@ namespace Firefly.Http
                 {
                     _baton.Free();
                     if (ReceiveAsync(frame))
+                    {
                         return;
+                    }
 
                     continue;
                 }
@@ -175,66 +175,78 @@ namespace Firefly.Http
 
         private void ProduceEnd(ProduceEndType endType)
         {
-            Action drained =
-                () =>
+            Action drained = () =>
+            {
+                switch (endType)
+                {
+                case ProduceEndType.SocketShutdownSend:
+                    _socket.Shutdown(SocketShutdown.Send);
+                    break;
+                case ProduceEndType.ConnectionKeepAlive:
+                    ThreadPool.QueueUserWorkItem(_ => Go(true, null));
+                    break;
+                case ProduceEndType.SocketDisconnect:
+                    _services.Trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+
+                    _baton.Free();
+
+                    _services.Memory.FreeSocketEvent(_receiveSocketEvent);
+                    _receiveSocketEvent = null;
+                    _socket.Shutdown(SocketShutdown.Receive);
+
+                    var e = new SocketAsyncEventArgs();
+                    Action cleanup = () =>
                     {
-                        switch (endType)
-                        {
-                            case ProduceEndType.SocketShutdownSend:
-                                _socket.Shutdown(SocketShutdown.Send);
-                                break;
-                            case ProduceEndType.ConnectionKeepAlive:
-                                ThreadPool.QueueUserWorkItem(_ => Go(true, null));
-                                break;
-                            case ProduceEndType.SocketDisconnect:
-                                _services.Trace.Event(TraceEventType.Stop, TraceMessage.Connection);
-
-                                _baton.Free();
-
-                                _services.Memory.FreeSocketEvent(_receiveSocketEvent);
-                                _receiveSocketEvent = null;
-                                _socket.Shutdown(SocketShutdown.Receive);
-
-                                var e = new SocketAsyncEventArgs();
-                                Action cleanup =
-                                    () =>
-                                        {
-                                            e.Dispose();
-                                            _disconnected(_socket);
-                                        };
-
-                                e.Completed += (_, __) => cleanup();
-                                if (!_socket.DisconnectAsync(e))
-                                {
-                                    cleanup();
-                                }
-                                break;
-                        }
+                        e.Dispose();
+                        _disconnected(_socket);
                     };
 
+                    e.Completed += (_, __) => cleanup();
+                    if (!_socket.DisconnectAsync(e))
+                    {
+                        cleanup();
+                    }
+                    break;
+                }
+            };
+
             if (!_socketSender.Flush(drained))
+            {
                 drained.Invoke();
+            }
         }
 
 
         bool IAsyncResult.IsCompleted
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         WaitHandle IAsyncResult.AsyncWaitHandle
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         object IAsyncResult.AsyncState
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         bool IAsyncResult.CompletedSynchronously
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

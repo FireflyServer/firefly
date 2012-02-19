@@ -24,9 +24,9 @@ namespace HelloWorld
             result(
                 "200 OK",
                 new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        {"Content-Type", new[] {"text/plain"}}
-                    },
+                {
+                    {"Content-Type", new[] {"text/plain"}}
+                },
                 (write, flush, end, cancel) =>
                 {
                     var bytes = Encoding.Default.GetBytes("Hello world!");

@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using Firefly.Http;
 using Xunit;
 
 namespace Firefly.Tests.Http
@@ -64,13 +63,13 @@ namespace Firefly.Tests.Http
             App.OptionReadRequestBody = true;
 
             Input.Add(
-"Get / HTTP/1.1\r\nContent-Length: 0\r\n" +
-"x-1:alpha beta\r\n" +
-"x-2: alpha beta\r\n" +
-"x-3:alpha beta \r\n" +
-"x-4:\talpha beta\t\r\n" +
-"x-5:\t  \t \talpha\tbeta\t  \t \t\r\n" +
-"\r\n");
+                "Get / HTTP/1.1\r\nContent-Length: 0\r\n" +
+                    "x-1:alpha beta\r\n" +
+                        "x-2: alpha beta\r\n" +
+                            "x-3:alpha beta \r\n" +
+                                "x-4:\talpha beta\t\r\n" +
+                                    "x-5:\t  \t \talpha\tbeta\t  \t \t\r\n" +
+                                        "\r\n");
             Input.End();
             AssertInputState(false, true, "");
             AssertOutputState(true);
@@ -88,15 +87,15 @@ namespace Firefly.Tests.Http
             App.OptionReadRequestBody = true;
 
             Input.Add(
-"Get / HTTP/1.1\r\nContent-Length: 0\r\n" +
-"x-1:alpha beta1\r\n" +
-"x-1: alpha beta2\r\n" +
-"x-2: foo1 \r\n" +
-"x-1:alpha beta3 \r\n" +
-"x-2: foo2 \r\n" +
-"x-1:\talpha beta4\t\r\n" +
-"x-1:\t  \t \talpha\tbeta5\t  \t \t\r\n" +
-"\r\n");
+                "Get / HTTP/1.1\r\nContent-Length: 0\r\n" +
+                    "x-1:alpha beta1\r\n" +
+                        "x-1: alpha beta2\r\n" +
+                            "x-2: foo1 \r\n" +
+                                "x-1:alpha beta3 \r\n" +
+                                    "x-2: foo2 \r\n" +
+                                        "x-1:\talpha beta4\t\r\n" +
+                                            "x-1:\t  \t \talpha\tbeta5\t  \t \t\r\n" +
+                                                "\r\n");
             Input.End();
 
             AssertInputState(false, true, "");
@@ -104,7 +103,7 @@ namespace Firefly.Tests.Http
 
             var x1 = App.RequestHeaders["x-1"].ToArray();
             Assert.Equal(5, x1.Length);
-            Assert.Equal("alpha beta1*alpha beta2*alpha beta3*alpha beta4*alpha\tbeta5", string.Join("*",x1));
+            Assert.Equal("alpha beta1*alpha beta2*alpha beta3*alpha beta4*alpha\tbeta5", string.Join("*", x1));
 
             var x2 = App.RequestHeaders["x-2"].ToArray();
             Assert.Equal(2, x2.Length);
@@ -117,12 +116,12 @@ namespace Firefly.Tests.Http
             App.OptionReadRequestBody = true;
 
             Input.Add(
-"Get / HTTP/1.1\r\nContent-Length: 0\r\n" +
-"x-1:alpha beta1\r\n" +
-"x-1:alpha\r\n\tbeta2\r\n" +
-"x-1:alpha\r\n beta3 \r\n" +
-"x-1:\talpha beta4\t\r\n" +
-"\r\n");
+                "Get / HTTP/1.1\r\nContent-Length: 0\r\n" +
+                    "x-1:alpha beta1\r\n" +
+                        "x-1:alpha\r\n\tbeta2\r\n" +
+                            "x-1:alpha\r\n beta3 \r\n" +
+                                "x-1:\talpha beta4\t\r\n" +
+                                    "\r\n");
             Input.End();
             AssertInputState(false, true, "");
             AssertOutputState(true);
@@ -131,6 +130,5 @@ namespace Firefly.Tests.Http
             Assert.Equal(4, x1.Length);
             Assert.Equal("alpha beta1*alpha \tbeta2*alpha  beta3*alpha beta4", string.Join("*", x1));
         }
-
     }
 }

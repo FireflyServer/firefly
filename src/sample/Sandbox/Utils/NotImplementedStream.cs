@@ -31,28 +31,46 @@ namespace Sandbox.Utils
 
         public override bool CanRead
         {
-            get { return false; }
+            get
+            {
+                return false;
+            }
         }
 
         public override bool CanSeek
         {
-            get { return false; }
+            get
+            {
+                return false;
+            }
         }
 
         public override bool CanWrite
         {
-            get { return false; }
+            get
+            {
+                return false;
+            }
         }
 
         public override long Length
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public override long Position
         {
-            get { throw new NotImplementedException(); }
-            set { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

@@ -4,16 +4,16 @@ using System.Threading;
 
 namespace Firefly.Tests.Fakes
 {
-    public class FakeResponseBody 
+    public class FakeResponseBody
     {
         public FakeResponseBody()
         {
             Encoding = Encoding.UTF8;
             Text = "";
         }
-        
+
         public void Subscribe(
-            Func<ArraySegment<byte>, bool> write, 
+            Func<ArraySegment<byte>, bool> write,
             Func<Action, bool> flush,
             Action<Exception> end,
             CancellationToken cancellationtoken)
@@ -38,7 +38,5 @@ namespace Firefly.Tests.Fakes
                 Bytes = new ArraySegment<byte>(data, 0, data.Length);
             }
         }
-
-        
     }
 }

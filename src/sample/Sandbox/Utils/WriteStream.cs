@@ -17,7 +17,10 @@ namespace Sandbox.Utils
 
         public override bool CanWrite
         {
-            get { return true; }
+            get
+            {
+                return true;
+            }
         }
 
         public override void Write(byte[] buffer, int offset, int count)
@@ -25,12 +28,15 @@ namespace Sandbox.Utils
             _write(new ArraySegment<byte>(buffer, offset, count), null);
         }
 
-        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+        public override IAsyncResult BeginWrite(
+            byte[] buffer, int offset, int count, AsyncCallback callback, object state)
         {
             var tcs = new TaskCompletionSource<object>();
 
             if (!_write(new ArraySegment<byte>(buffer, offset, count), () => tcs.SetResult(null)))
+            {
                 tcs.SetResult(null);
+            }
 
             return tcs.Task;
         }
@@ -45,6 +51,5 @@ namespace Sandbox.Utils
         {
             Interlocked.Exchange(ref _close, () => { }).Invoke();
         }
-
     }
 }

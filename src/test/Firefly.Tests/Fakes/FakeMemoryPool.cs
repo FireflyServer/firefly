@@ -7,7 +7,10 @@ namespace Firefly.Tests.Fakes
     {
         public byte[] Empty
         {
-            get { return new byte[0]; }
+            get
+            {
+                return new byte[0];
+            }
         }
 
         public int AllocByteCount { get; set; }
@@ -60,7 +63,7 @@ namespace Firefly.Tests.Fakes
         }
 
         public void FreeSocketEvent(ISocketEvent socketEvent)
-        {            
+        {
         }
     }
 }

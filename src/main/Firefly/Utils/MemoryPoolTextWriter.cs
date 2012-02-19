@@ -22,7 +22,10 @@ namespace Firefly.Utils
 
         public ArraySegment<byte> Buffer
         {
-            get { return new ArraySegment<byte>(_dataArray, 0, _dataEnd); }
+            get
+            {
+                return new ArraySegment<byte>(_dataArray, 0, _dataEnd);
+            }
         }
 
         public MemoryPoolTextWriter(IMemoryPool memory)
@@ -35,7 +38,10 @@ namespace Firefly.Utils
 
         public override Encoding Encoding
         {
-            get { return Encoding.Default; }
+            get
+            {
+                return Encoding.Default;
+            }
         }
 
         protected override void Dispose(bool disposing)
@@ -65,14 +71,20 @@ namespace Firefly.Utils
         private void Encode(bool flush)
         {
             var bytesNeeded = _encoder.GetByteCount(
-                _textArray, _textBegin, _textEnd - _textBegin,
+                _textArray,
+                _textBegin,
+                _textEnd - _textBegin,
                 flush);
 
             Grow(bytesNeeded);
 
             var bytesUsed = _encoder.GetBytes(
-                _textArray, _textBegin, _textEnd - _textBegin,
-                _dataArray, _dataEnd, flush);
+                _textArray,
+                _textBegin,
+                _textEnd - _textBegin,
+                _dataArray,
+                _dataEnd,
+                flush);
 
             _textBegin = _textEnd = 0;
             _dataEnd += bytesUsed;
@@ -81,7 +93,9 @@ namespace Firefly.Utils
         private void Grow(int minimumAvailable)
         {
             if (_dataArray.Length - _dataEnd >= minimumAvailable)
+            {
                 return;
+            }
 
             var newLength = _dataArray.Length + Math.Max(_dataArray.Length, minimumAvailable);
             var newArray = _memory.AllocByte(newLength);
@@ -117,7 +131,9 @@ namespace Firefly.Utils
 
                 var count = sourceLength - sourceIndex;
                 if (count > _textLength - _textEnd)
+                {
                     count = _textLength - _textEnd;
+                }
 
                 value.CopyTo(sourceIndex, _textArray, _textEnd, count);
                 sourceIndex += count;

@@ -18,10 +18,17 @@ namespace Firefly.Tests.Fakes
         }
 
         public BodyDelegate Body { get; set; }
+
         public int SubscribeCount
         {
-            get { return _subscribeCount; }
-            set { _subscribeCount = value; }
+            get
+            {
+                return _subscribeCount;
+            }
+            set
+            {
+                _subscribeCount = value;
+            }
         }
 
         public MemoryStream MemoryStream { get; set; }
@@ -33,7 +40,10 @@ namespace Firefly.Tests.Fakes
 
         public string Text
         {
-            get { return Encoding.GetString(MemoryStream.ToArray()); }
+            get
+            {
+                return Encoding.GetString(MemoryStream.ToArray());
+            }
         }
 
         public void Subscribe(
@@ -59,6 +69,5 @@ namespace Firefly.Tests.Fakes
                 },
                 cancellationToken);
         }
-
     }
 }

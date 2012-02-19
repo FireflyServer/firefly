@@ -31,12 +31,13 @@ namespace Firefly.Tests.Http
             var server = new ServerFactory().Create((env, result, fault) => { }, 56566);
             server.Dispose();
 
-            Assert.Throws<SocketException>(() =>
-            {
-                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
-                socket.Connect("localhost", 56566);
-                socket.Close();
-            });
+            Assert.Throws<SocketException>(
+                () =>
+                {
+                    var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
+                    socket.Connect("localhost", 56566);
+                    socket.Close();
+                });
         }
 
         [Fact]
@@ -58,7 +59,7 @@ namespace Firefly.Tests.Http
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
                 socket.Connect("localhost", 56567);
                 socket.Send(
-@"GET / HTTP/1.0
+                    @"GET / HTTP/1.0
 Connection: close
 Host: localhost
 
@@ -91,19 +92,22 @@ Host: localhost
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
                 socket.Connect("localhost", 56567);
                 socket.Send(
-@"GET / HTTP/1.1
+                    @"GET / HTTP/1.1
 Connection: close
 Host: localhost
 
 ");
-                if (Debugger.IsAttached) responseEnded.Task.Wait();
+                if (Debugger.IsAttached)
+                {
+                    responseEnded.Task.Wait();
+                }
 
                 Assert.True(responseEnded.Task.Wait(TimeSpan.FromSeconds(5)));
 
                 var totalBytes = 0;
                 var buffer = new byte[1024];
                 var totalText = "";
-                for (; ; )
+                for (;;)
                 {
                     var bytes = socket.Receive(buffer);
                     if (bytes == 0)
@@ -136,18 +140,20 @@ Host: localhost
                     var loop = 0;
                     Action go = () => { };
                     go = () =>
-                               {
-                                   while (loop != 10000)
-                                   {
-                                       ++loop;
-                                       // ReSharper disable AccessToModifiedClosure
-                                       if (write(data) && flush(go))
-                                           return;
-                                       // ReSharper restore AccessToModifiedClosure
-                                   }
-                                   end(null);
-                                   responseEnded.TrySetResult(true);
-                               };
+                    {
+                        while (loop != 10000)
+                        {
+                            ++loop;
+                            // ReSharper disable AccessToModifiedClosure
+                            if (write(data) && flush(go))
+                            {
+                                return;
+                            }
+                            // ReSharper restore AccessToModifiedClosure
+                        }
+                        end(null);
+                        responseEnded.TrySetResult(true);
+                    };
                     go.Invoke();
                     responseStarted.TrySetResult(true);
                 });
@@ -157,7 +163,7 @@ Host: localhost
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
                 socket.Connect("localhost", 56567);
                 socket.Send(
-@"GET / HTTP/1.1
+                    @"GET / HTTP/1.1
 Connection: close
 Host: localhost
 
@@ -170,7 +176,7 @@ Host: localhost
                 var buffer = new byte[1024];
                 var totalText = "";
                 var chunks = "";
-                for (; ; )
+                for (;;)
                 {
                     var bytes = socket.Receive(buffer);
                     if (bytes == 0)

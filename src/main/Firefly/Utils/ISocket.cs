@@ -15,7 +15,7 @@ namespace Firefly.Utils
 
         int Send(IList<ArraySegment<byte>> buffers, SocketFlags socketFlags, out SocketError errorCode);
         bool SendAsync(ISocketEvent socketEvent);
-        
+
         void Shutdown(SocketShutdown how);
         bool DisconnectAsync(SocketAsyncEventArgs e);
         void Close();

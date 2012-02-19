@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Firefly.Utils;
+﻿using Firefly.Utils;
 
 namespace Firefly.Tests.Fakes
 {
@@ -13,6 +9,7 @@ namespace Firefly.Tests.Fakes
             Trace = new FakeTrace();
             Memory = new FakeMemoryPool();
         }
+
         public IServerTrace Trace { get; private set; }
         public IMemoryPool Memory { get; private set; }
     }

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Nancy;
 
 namespace Sandbox
@@ -11,13 +8,18 @@ namespace Sandbox
         public MainModule()
         {
             Get["/"] = o => { return View["hello"]; };
-            Get["/posting"] = o => { return "<form method='post'><p><input type='textbox' name='Hello' value='world'/><br/><input type='submit' value='go'/></p></form>"; };
+            Get["/posting"] =
+                o =>
+                {
+                    return
+                        "<form method='post'><p><input type='textbox' name='Hello' value='world'/><br/><input type='submit' value='go'/></p></form>";
+                };
             Post["/posting"] = o =>
-                                   {
-                                       //var data = new byte[1024];
-                                       //var count = Request.Body.Read(data, 0, data.Length);
-                                       return string.Format("Hello {0}!", Request.Form.Hello);
-                                   };
+            {
+                //var data = new byte[1024];
+                //var count = Request.Body.Read(data, 0, data.Length);
+                return string.Format("Hello {0}!", Request.Form.Hello);
+            };
 
             Get["websockets"] = o => { return View["websockets", Request.Url]; };
         }

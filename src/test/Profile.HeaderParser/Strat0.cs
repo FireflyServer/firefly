@@ -1,5 +1,4 @@
-﻿using System.Text;
-using Firefly.Http;
+﻿using Firefly.Http;
 
 namespace Profile.HeaderParser
 {

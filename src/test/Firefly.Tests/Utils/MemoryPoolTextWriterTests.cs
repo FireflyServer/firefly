@@ -51,8 +51,5 @@ namespace Firefly.Tests.Utils
             Assert.Equal(66, Writer.Buffer.Array[1]);
             Assert.Equal(67, Writer.Buffer.Array[2]);
         }
-
-
-
     }
 }

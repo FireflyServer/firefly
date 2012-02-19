@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace Firefly.Utils
 {
@@ -22,7 +21,7 @@ namespace Firefly.Utils
 
         // TraceEventType.Error
         ServerFactoryAcceptSocketError
-    };
+    }
 
     public interface IServerTrace
     {

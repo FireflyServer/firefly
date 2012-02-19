@@ -20,13 +20,13 @@ namespace Firefly.Tests.Http
             Input = new FakeInput();
             Frame = new Frame(
                 new FrameContext
-                    {
-                        Services = Services,
-                        App = App.Call,
-                        Write = Output.Write,
-                        Flush = Output.Flush,
-                        End = Output.End,
-                    });
+                {
+                    Services = Services,
+                    App = App.Call,
+                    Write = Output.Write,
+                    Flush = Output.Flush,
+                    End = Output.End,
+                });
             Input.Consume = (baton, callback, fault) => Frame.Consume(baton, _ => callback(), fault);
         }
 

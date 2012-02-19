@@ -24,7 +24,10 @@ namespace Firefly.Utils
 
         public SocketAsyncEventArgs SocketAsyncEventArgs
         {
-            get { return _socketEvent; }
+            get
+            {
+                return _socketEvent;
+            }
         }
 
         public void Dispose()
@@ -34,23 +37,38 @@ namespace Firefly.Utils
 
         public byte[] Buffer
         {
-            get { return SocketAsyncEventArgs.Buffer; }
+            get
+            {
+                return SocketAsyncEventArgs.Buffer;
+            }
         }
 
         public int Offset
         {
-            get { return SocketAsyncEventArgs.Offset; }
+            get
+            {
+                return SocketAsyncEventArgs.Offset;
+            }
         }
 
         public int Count
         {
-            get { return SocketAsyncEventArgs.Count; }
+            get
+            {
+                return SocketAsyncEventArgs.Count;
+            }
         }
 
         public IList<ArraySegment<byte>> BufferList
         {
-            get { return SocketAsyncEventArgs.BufferList; }
-            set { SocketAsyncEventArgs.BufferList = value; }
+            get
+            {
+                return SocketAsyncEventArgs.BufferList;
+            }
+            set
+            {
+                SocketAsyncEventArgs.BufferList = value;
+            }
         }
 
         public void SetBuffer(byte[] buffer, int offset, int count)
@@ -61,23 +79,38 @@ namespace Firefly.Utils
 
         public Action Completed
         {
-            get { return _completed; }
-            set { _completed = value ?? Noop; }
+            get
+            {
+                return _completed;
+            }
+            set
+            {
+                _completed = value ?? Noop;
+            }
         }
 
         public SocketAsyncOperation LastOperation
         {
-            get { return SocketAsyncEventArgs.LastOperation; }
+            get
+            {
+                return SocketAsyncEventArgs.LastOperation;
+            }
         }
 
         public SocketError SocketError
         {
-            get { return SocketAsyncEventArgs.SocketError; }
+            get
+            {
+                return SocketAsyncEventArgs.SocketError;
+            }
         }
 
         public int BytesTransferred
         {
-            get { return SocketAsyncEventArgs.BytesTransferred; }
+            get
+            {
+                return SocketAsyncEventArgs.BytesTransferred;
+            }
         }
     }
 }

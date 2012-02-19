@@ -1,26 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using Firefly.Http;
-using Firefly.Utils;
-using Xunit;
+﻿using Xunit;
 
 namespace Firefly.Tests.Http
 {
     public class FrameTests : FrameTestsBase
     {
-        
         [Fact]
         public void FakeAppCanReturnResults()
         {
             App.ResponseStatus = "200 Super";
-            App.ResponseHeaders["x-header"] = new[] { "value" };
+            App.ResponseHeaders["x-header"] = new[] {"value"};
             App.ResponseBody.Text = "This is the response";
 
             Input.Add(
-@"POST /hello/world?x=y HTTP/1.1
+                @"POST /hello/world?x=y HTTP/1.1
 Host:localhost
 
 ");
@@ -56,9 +48,9 @@ Host:localhost
         public void CompletedRequestGeneratesResponse()
         {
             App.ResponseStatus = "418 I'm a teapot";
-            App.ResponseHeaders["Connection"] = new[]{"close"};
+            App.ResponseHeaders["Connection"] = new[] {"close"};
             Input.Add(
-@"GET /hello/world?x=y HTTP/1.1
+                @"GET /hello/world?x=y HTTP/1.1
 Host: localhost
 
 ");
@@ -71,7 +63,7 @@ Host: localhost
             App.OptionReadRequestBody = true;
 
             Input.Add(
-@"POST /hello/world?x=y HTTP/1.1
+                @"POST /hello/world?x=y HTTP/1.1
 Host: localhost
 Content-Length: 5
 
@@ -91,7 +83,7 @@ Content-Length: 5
             App.OptionReadRequestBody = true;
 
             Input.Add(
-@"POST /hello/world?x=y HTTP/1.1
+                @"POST /hello/world?x=y HTTP/1.1
 Host: localhost
 Content-Length: 5
 
@@ -111,7 +103,7 @@ Content-Length: 5
             App.OptionReadRequestBody = true;
 
             Input.Add(
-@"POST /hello/world?x=y HTTP/1.1
+                @"POST /hello/world?x=y HTTP/1.1
 Host: localhost
 Content-Length: 10
 
@@ -124,6 +116,5 @@ Content-Length: 10
             Assert.False(App.RequestBody.Ended);
             Assert.Equal("12345", App.RequestBody.Text);
         }
-
     }
 }

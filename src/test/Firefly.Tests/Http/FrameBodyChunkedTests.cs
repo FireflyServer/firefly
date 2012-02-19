@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Firefly.Http;
-using Xunit;
+﻿using Xunit;
 
 namespace Firefly.Tests.Http
 {
@@ -13,7 +8,7 @@ namespace Firefly.Tests.Http
         public void AfterHeadersMoreReadingIsNeeded()
         {
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 ");
@@ -25,7 +20,7 @@ Transfer-Encoding: chunked
         {
             App.OptionReadRequestBody = true;
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a");
@@ -39,7 +34,7 @@ a");
         {
             App.OptionReadRequestBody = true;
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a
@@ -52,7 +47,7 @@ a
         {
             App.OptionReadRequestBody = true;
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a;foo=bar
@@ -65,7 +60,7 @@ a;foo=bar
         {
             App.OptionReadRequestBody = true;
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a;foo=bar
@@ -80,7 +75,7 @@ a;foo=bar
         {
             App.OptionReadRequestBody = true;
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a;foo=bar
@@ -96,7 +91,7 @@ a;foo=bar
         {
             App.OptionReadRequestBody = true;
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a;foo=bar
@@ -113,7 +108,7 @@ a;foo=bar
         {
             App.OptionReadRequestBody = true;
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a;foo=bar
@@ -131,7 +126,7 @@ a;foo=bar
         {
             App.OptionReadRequestBody = true;
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a;foo=bar
@@ -150,7 +145,7 @@ a;foo=bar
         {
             App.OptionReadRequestBody = true;
             Input.AddIndividualBytes(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a;foo=bar
@@ -170,7 +165,7 @@ a;foo=bar
         {
             App.OptionReadRequestBody = true;
             Input.Add(
-@"POST / HTTP/1.1
+                @"POST / HTTP/1.1
 Transfer-Encoding: chunked
 
 a;foo=bar

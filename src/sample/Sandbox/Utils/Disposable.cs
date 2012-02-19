@@ -14,7 +14,7 @@ namespace Sandbox.Utils
 
         public void Dispose()
         {
-            Interlocked.Exchange(ref _dispose, ()=> { }).Invoke();
+            Interlocked.Exchange(ref _dispose, () => { }).Invoke();
         }
     }
 }

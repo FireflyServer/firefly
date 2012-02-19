@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using Firefly.Http;
 
@@ -29,14 +27,22 @@ namespace Firefly.Tests.Fakes
         public void End(ProduceEndType produceEndType)
         {
             if (produceEndType == ProduceEndType.SocketShutdownSend)
+            {
                 ShutdownSend = true;
+            }
             else
+            {
                 Ended = true;
+            }
 
             if (produceEndType == ProduceEndType.ConnectionKeepAlive)
+            {
                 KeepAlive = true;
+            }
             else if (produceEndType == ProduceEndType.SocketDisconnect)
+            {
                 KeepAlive = false;
+            }
         }
 
 
@@ -48,9 +54,10 @@ namespace Firefly.Tests.Fakes
 
         public string Text
         {
-            get { return Encoding.GetString(MemoryStream.ToArray()); }
+            get
+            {
+                return Encoding.GetString(MemoryStream.ToArray());
+            }
         }
-
-        
     }
 }

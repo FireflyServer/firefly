@@ -57,7 +57,5 @@ namespace Firefly.Tests.Utils
             Assert.True(buffering2);
             Assert.Equal("Hello worl", Socket.Output);
         }
-
-
     }
 }

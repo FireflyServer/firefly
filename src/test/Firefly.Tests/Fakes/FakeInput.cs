@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Firefly.Tests.Extensions;
-using Firefly.Tests.Http;
 using Firefly.Http;
+using Firefly.Tests.Extensions;
 using Xunit;
 
 namespace Firefly.Tests.Fakes
@@ -18,6 +16,7 @@ namespace Firefly.Tests.Fakes
             WaitHandle = new ManualResetEvent(false);
             Encoding = Encoding.UTF8;
         }
+
         public Baton Baton { get; set; }
         public Func<Baton, Action, Action<Exception>, bool> Consume { get; set; }
 
@@ -37,10 +36,13 @@ namespace Firefly.Tests.Fakes
         public void Add(string text)
         {
             if (Paused)
+            {
                 throw new InvalidOperationException("FakeInput.Add cannot be called when Paused is true");
+            }
 
             Baton.Available(Encoding.GetByteCount(text));
-            var count = Encoding.GetBytes(text, 0, text.Length, Baton.Buffer.Array, Baton.Buffer.Offset + Baton.Buffer.Count);
+            var count = Encoding.GetBytes(
+                text, 0, text.Length, Baton.Buffer.Array, Baton.Buffer.Offset + Baton.Buffer.Count);
             Assert.Equal(text.Length, count);
             Baton.Buffer = new ArraySegment<byte>(
                 Baton.Buffer.Array,
@@ -53,7 +55,9 @@ namespace Firefly.Tests.Fakes
         public void End()
         {
             if (Paused)
+            {
                 throw new InvalidOperationException("FakeInput.End cannot be called when End is true");
+            }
 
             Baton.RemoteIntakeFin = true;
             CallConsume();
@@ -62,16 +66,20 @@ namespace Firefly.Tests.Fakes
         private void CallConsume()
         {
             WaitHandle.Reset();
-            
+
             Paused = true;
             if (!Consume(Baton, Resume, Error))
+            {
                 Paused = false;
+            }
         }
 
         public void Resume()
         {
             if (!Paused)
+            {
                 throw new InvalidOperationException("FakeInput.Resume cannot be called when Paused is false");
+            }
             Paused = false;
             WaitHandle.Set();
         }
@@ -79,7 +87,9 @@ namespace Firefly.Tests.Fakes
         public void Error(Exception ex)
         {
             if (!Paused)
+            {
                 throw new InvalidOperationException("FakeInput.Error cannot be called when Paused is false");
+            }
             LastException = ex;
             Paused = false;
             WaitHandle.Set();
@@ -95,7 +105,9 @@ namespace Firefly.Tests.Fakes
                 Baton.Extend(1);
                 CallConsume();
                 if (Paused)
+                {
                     throw new InvalidOperationException("Pause not implemented on this one yet");
+                }
             }
         }
     }

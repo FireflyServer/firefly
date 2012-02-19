@@ -31,6 +31,7 @@ namespace Firefly.Http
         private FrameContext _context;
 
         Mode _mode;
+
         enum Mode
         {
             StartLine,
@@ -44,7 +45,10 @@ namespace Firefly.Http
         private string _path;
         private string _queryString;
         private string _httpVersion;
-        private readonly IDictionary<string, IEnumerable<string>> _headers = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
+
+        private readonly IDictionary<string, IEnumerable<string>> _headers =
+            new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
+
         private MessageBody _messageBody;
         private bool _resultStarted;
         private bool _keepAlive;
@@ -66,59 +70,63 @@ namespace Firefly.Http
 
         public bool Consume(Baton baton, Action<Frame> callback, Action<Exception> fault)
         {
-            for (; ; )
+            for (;;)
             {
                 switch (_mode)
                 {
-                    case Mode.StartLine:
-                        if (baton.RemoteIntakeFin)
-                        {
-                            _mode = Mode.Terminated;
-                            return false;
-                        }
-
-                        if (!TakeStartLine(baton))
-                        {
-                            return false;
-                        }
-
-                        _mode = Mode.MessageHeader;
-                        break;
-
-                    case Mode.MessageHeader:
-                        if (baton.RemoteIntakeFin)
-                        {
-                            _mode = Mode.Terminated;
-                            return false;
-                        }
-
-                        var endOfHeaders = false;
-                        while (!endOfHeaders)
-                        {
-                            if (!TakeMessageHeader(baton, out endOfHeaders))
-                                return false;
-                        }
-
-                        var resumeBody = HandleExpectContinue(callback);
-                        _messageBody = MessageBody.For(
-                            _httpVersion,
-                            _headers,
-                            () =>
-                            {
-                                if (!Consume(baton, resumeBody, fault))
-                                    resumeBody.Invoke(this);
-                            });
-                        _keepAlive = _messageBody.RequestKeepAlive;
-                        _mode = Mode.MessageBody;
-                        baton.Free();
-                        Execute();
-                        return true;
-
-                    case Mode.MessageBody:
-                        return _messageBody.Consume(baton, ()=>callback(this), fault);
-
-                    case Mode.Terminated:
+                case Mode.StartLine:
+                    if (baton.RemoteIntakeFin)
+                    {
+                        _mode = Mode.Terminated;
                         return false;
+                    }
+
+                    if (!TakeStartLine(baton))
+                    {
+                        return false;
+                    }
+
+                    _mode = Mode.MessageHeader;
+                    break;
+
+                case Mode.MessageHeader:
+                    if (baton.RemoteIntakeFin)
+                    {
+                        _mode = Mode.Terminated;
+                        return false;
+                    }
+
+                    var endOfHeaders = false;
+                    while (!endOfHeaders)
+                    {
+                        if (!TakeMessageHeader(baton, out endOfHeaders))
+                        {
+                            return false;
+                        }
+                    }
+
+                    var resumeBody = HandleExpectContinue(callback);
+                    _messageBody = MessageBody.For(
+                        _httpVersion,
+                        _headers,
+                        () =>
+                        {
+                            if (!Consume(baton, resumeBody, fault))
+                            {
+                                resumeBody.Invoke(this);
+                            }
+                        });
+                    _keepAlive = _messageBody.RequestKeepAlive;
+                    _mode = Mode.MessageBody;
+                    baton.Free();
+                    Execute();
+                    return true;
+
+                case Mode.MessageBody:
+                    return _messageBody.Consume(baton, () => callback(this), fault);
+
+                case Mode.Terminated:
+                    return false;
                 }
             }
         }
@@ -128,25 +136,26 @@ namespace Firefly.Http
             IEnumerable<string> expect;
             if (_httpVersion.Equals("HTTP/1.1") &&
                 _headers.TryGetValue("Expect", out expect) &&
-                (expect.FirstOrDefault() ?? "").Equals("100-continue", StringComparison.OrdinalIgnoreCase))
+                    (expect.FirstOrDefault() ?? "").Equals("100-continue", StringComparison.OrdinalIgnoreCase))
             {
-                return
-                    frame =>
+                return frame =>
+                {
+                    if (_resultStarted)
                     {
-                        if (_resultStarted)
+                        continuation.Invoke(frame);
+                    }
+                    else
+                    {
+                        var bytes = Encoding.Default.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
+                        var isasync =
+                            _context.Write(new ArraySegment<byte>(bytes)) &&
+                                _context.Flush(() => continuation(frame));
+                        if (!isasync)
                         {
                             continuation.Invoke(frame);
                         }
-                        else
-                        {
-                            var bytes = Encoding.Default.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
-                            var isasync =
-                                _context.Write(new ArraySegment<byte>(bytes)) &&
-                                _context.Flush(()=>continuation(frame));
-                            if (!isasync)
-                                continuation.Invoke(frame);
-                        }
-                    };
+                    }
+                };
             }
             return continuation;
         }
@@ -177,14 +186,20 @@ namespace Firefly.Http
         private void ProduceEnd(Exception ex)
         {
             if (!_keepAlive)
+            {
                 _context.End(ProduceEndType.SocketShutdownSend);
+            }
 
-            if (!_messageBody.Drain(() => _context.End(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect)))
+            if (!_messageBody.Drain(
+                () => _context.End(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect)))
+            {
                 _context.End(_keepAlive ? ProduceEndType.ConnectionKeepAlive : ProduceEndType.SocketDisconnect);
+            }
         }
 
 
-        private Tuple<ArraySegment<byte>, IDisposable> CreateResponseHeader(string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
+        private Tuple<ArraySegment<byte>, IDisposable> CreateResponseHeader(
+            string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
         {
             var writer = new MemoryPoolTextWriter(_context.Services.Memory);
             writer.Write(_httpVersion);
@@ -258,7 +273,10 @@ namespace Firefly.Http
         private bool TakeStartLine(Baton baton)
         {
             var remaining = baton.Buffer;
-            if (remaining.Count < 2) return false;
+            if (remaining.Count < 2)
+            {
+                return false;
+            }
             var firstSpace = -1;
             var secondSpace = -1;
             var questionMark = -1;
@@ -316,7 +334,10 @@ namespace Firefly.Http
         {
             var remaining = baton.Buffer;
             endOfHeaders = false;
-            if (remaining.Count < 2) return false;
+            if (remaining.Count < 2)
+            {
+                return false;
+            }
             var ch0 = remaining.Array[remaining.Offset];
             var ch1 = remaining.Array[remaining.Offset + 1];
             if (ch0 == '\r' && ch1 == '\n')
@@ -326,7 +347,10 @@ namespace Firefly.Http
                 return true;
             }
 
-            if (remaining.Count < 3) return false;
+            if (remaining.Count < 3)
+            {
+                return false;
+            }
             var wrappedHeaders = false;
             var colonIndex = -1;
             var valueStartIndex = -1;
@@ -336,15 +360,20 @@ namespace Firefly.Http
                 var ch2 = remaining.Array[remaining.Offset + index + 2];
                 if (ch0 == '\r' &&
                     ch1 == '\n' &&
-                    ch2 != ' ' &&
-                    ch2 != '\t')
+                        ch2 != ' ' &&
+                            ch2 != '\t')
                 {
                     var name = Encoding.ASCII.GetString(remaining.Array, remaining.Offset, colonIndex);
                     var value = "";
                     if (valueEndIndex != -1)
-                        value = Encoding.ASCII.GetString(remaining.Array, remaining.Offset + valueStartIndex, valueEndIndex - valueStartIndex);
+                    {
+                        value = Encoding.ASCII.GetString(
+                            remaining.Array, remaining.Offset + valueStartIndex, valueEndIndex - valueStartIndex);
+                    }
                     if (wrappedHeaders)
+                    {
                         value = value.Replace("\r\n", " ");
+                    }
                     AddRequestHeader(name, value);
                     baton.Skip(index + 2);
                     return true;
@@ -355,19 +384,21 @@ namespace Firefly.Http
                 }
                 else if (colonIndex != -1 &&
                     ch0 != ' ' &&
-                    ch0 != '\t' &&
-                    ch0 != '\r' &&
-                    ch0 != '\n')
+                        ch0 != '\t' &&
+                            ch0 != '\r' &&
+                                ch0 != '\n')
                 {
                     if (valueStartIndex == -1)
+                    {
                         valueStartIndex = index;
+                    }
                     valueEndIndex = index + 1;
                 }
                 else if (!wrappedHeaders &&
                     ch0 == '\r' &&
-                    ch1 == '\n' &&
-                    (ch2 == ' ' ||
-                    ch2 == '\t'))
+                        ch1 == '\n' &&
+                            (ch2 == ' ' ||
+                                ch2 == '\t'))
                 {
                     wrappedHeaders = true;
                 }
@@ -384,11 +415,11 @@ namespace Firefly.Http
             IEnumerable<string> existing;
             if (_headers.TryGetValue(name, out existing))
             {
-                _headers[name] = existing.Concat(new[] { value });
+                _headers[name] = existing.Concat(new[] {value});
             }
             else
             {
-                _headers[name] = new[] { value };
+                _headers[name] = new[] {value};
             }
         }
 

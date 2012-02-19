@@ -28,6 +28,5 @@ namespace Firefly.Tests.Http
             Disconnected = true;
             DisconnectedEvent.Set();
         }
-
     }
 }

@@ -7,7 +7,7 @@ namespace Firefly.Utils
         public static readonly IServerTrace Instance = new NullServerTrace();
 
         public void Event(TraceEventType type, TraceMessage message)
-        {            
+        {
         }
     }
 }

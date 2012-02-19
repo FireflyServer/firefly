@@ -17,7 +17,7 @@ namespace Firefly.Tests.Http
             Assert.Equal(true, Socket.ReceiveAsyncPaused);
 
             Socket.Add(
-@"GET / HTTP/1.1
+                @"GET / HTTP/1.1
 Host: localhost
 Connection: close
 
@@ -35,7 +35,7 @@ Connection: close
             Connection.Execute();
 
             Socket.Add(
-@"GET / HTTP/1.1
+                @"GET / HTTP/1.1
 Host: localhost
 
 GET /ignored HTTP/1.1
@@ -46,7 +46,7 @@ Host: localhost
             Assert.True(Socket.DisconnectCalled);
             Assert.Equal(1, App.CallCount);
             Assert.Equal(
-@"HTTP/1.1 200 OK
+                @"HTTP/1.1 200 OK
 Connection: close
 
 ", Socket.Output);
@@ -56,13 +56,13 @@ Connection: close
         public void ConnectionCloseWillCauseDisconnectEvenWithResponseBodyInformation()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Connection"] = new[] { "close" };
-            App.ResponseHeaders["Content-Length"] = new[] { "0" };
+            App.ResponseHeaders["Connection"] = new[] {"close"};
+            App.ResponseHeaders["Content-Length"] = new[] {"0"};
 
             Connection.Execute();
 
             Socket.Add(
-@"GET / HTTP/1.1
+                @"GET / HTTP/1.1
 Host: localhost
 
 GET /ignored HTTP/1.1
@@ -73,7 +73,7 @@ Host: localhost
             Assert.True(Socket.DisconnectCalled);
             Assert.Equal(1, App.CallCount);
             Assert.Equal(
-@"HTTP/1.1 200 OK
+                @"HTTP/1.1 200 OK
 Connection: close
 Content-Length: 0
 
@@ -84,12 +84,12 @@ Content-Length: 0
         public void ContentLengthAloneWillAllowKeepAliveToOccur()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Content-Length"] = new[] { "0" };
+            App.ResponseHeaders["Content-Length"] = new[] {"0"};
 
             Connection.Execute();
 
             Socket.Add(
-@"GET / HTTP/1.1
+                @"GET / HTTP/1.1
 Host: localhost
 
 GET /ignored HTTP/1.1
@@ -102,26 +102,25 @@ Host: localhost
             Assert.True(Socket.ReceiveAsyncPaused);
             Assert.Equal(2, App.CallCount);
             Assert.Equal(
-@"HTTP/1.1 200 OK
+                @"HTTP/1.1 200 OK
 Content-Length: 0
 
 HTTP/1.1 200 OK
 Content-Length: 0
 
 ", Socket.Output);
-
         }
 
         [Fact]
         public void RequestsMayArriveIndividually()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Content-Length"] = new[] { "0" };
+            App.ResponseHeaders["Content-Length"] = new[] {"0"};
 
             Connection.Execute();
 
             Socket.Add(
-@"GET / HTTP/1.1
+                @"GET / HTTP/1.1
 Host: localhost
 
 ");
@@ -131,13 +130,13 @@ Host: localhost
             Assert.True(Socket.ReceiveAsyncPaused);
             Assert.Equal(1, App.CallCount);
             Assert.Equal(
-@"HTTP/1.1 200 OK
+                @"HTTP/1.1 200 OK
 Content-Length: 0
 
 ", Socket.Output);
 
             Socket.Add(
-@"GET / HTTP/1.1
+                @"GET / HTTP/1.1
 Host: localhost
 
 ");
@@ -148,26 +147,25 @@ Host: localhost
             Assert.True(Socket.ReceiveAsyncPaused);
             Assert.Equal(2, App.CallCount);
             Assert.Equal(
-@"HTTP/1.1 200 OK
+                @"HTTP/1.1 200 OK
 Content-Length: 0
 
 HTTP/1.1 200 OK
 Content-Length: 0
 
 ", Socket.Output);
-
         }
 
         [Fact]
         public void RequestBodyContentLengthAllowsBackToBackPosts()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Content-Length"] = new[] { "0" };
+            App.ResponseHeaders["Content-Length"] = new[] {"0"};
 
             Connection.Execute();
 
             Socket.Add(
-@"POST /one HTTP/1.1
+                @"POST /one HTTP/1.1
 Content-Length: 7
 Host: localhost
 
@@ -187,7 +185,7 @@ Host: localhost
             Assert.True(Socket.ReceiveAsyncPaused);
             Assert.Equal(3, App.CallCount);
             Assert.Equal(
-@"HTTP/1.1 200 OK
+                @"HTTP/1.1 200 OK
 Content-Length: 0
 
 HTTP/1.1 200 OK
@@ -196,20 +194,20 @@ Content-Length: 0
 HTTP/1.1 200 OK
 Content-Length: 0
 
-", Socket.Output);
-
+",
+                Socket.Output);
         }
 
         [Fact]
         public void RequestBodyChunkedAlsoAllowsBackToBackPosts()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Content-Length"] = new[] { "0" };
+            App.ResponseHeaders["Content-Length"] = new[] {"0"};
 
             Connection.Execute();
 
             Socket.Add(
-@"POST /one HTTP/1.1
+                @"POST /one HTTP/1.1
 Transfer-Encoding: chunked
 Host: localhost
 
@@ -235,7 +233,7 @@ Host: localhost
             Assert.True(Socket.ReceiveAsyncPaused);
             Assert.Equal(3, App.CallCount);
             Assert.Equal(
-@"HTTP/1.1 200 OK
+                @"HTTP/1.1 200 OK
 Content-Length: 0
 
 HTTP/1.1 200 OK
@@ -244,8 +242,8 @@ Content-Length: 0
 HTTP/1.1 200 OK
 Content-Length: 0
 
-", Socket.Output);
-
+",
+                Socket.Output);
         }
     }
 }

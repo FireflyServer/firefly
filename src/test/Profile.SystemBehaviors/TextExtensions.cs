@@ -29,6 +29,4 @@ namespace Profile.Server
             stream.Write(bytes, 0, bytes.Length);
         }
     }
-
-
 }

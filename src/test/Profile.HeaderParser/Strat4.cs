@@ -10,7 +10,7 @@ namespace Profile.HeaderParser
         {
             endOfHeaders = false;
             var text = Encoding.Default.GetString(baton.Buffer.Array, baton.Buffer.Offset, baton.Buffer.Count);
-            var lines = text.Split(new[] { "\r\n" }, StringSplitOptions.None);
+            var lines = text.Split(new[] {"\r\n"}, StringSplitOptions.None);
             foreach (var line in lines)
             {
                 if (line == "")

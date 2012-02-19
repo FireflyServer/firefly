@@ -15,19 +15,34 @@ namespace Firefly.Utils
 
         public bool Blocking
         {
-            get { return _socket.Blocking; }
-            set { _socket.Blocking = value; }
+            get
+            {
+                return _socket.Blocking;
+            }
+            set
+            {
+                _socket.Blocking = value;
+            }
         }
 
         public bool NoDelay
         {
-            get { return _socket.NoDelay; }
-            set { _socket.NoDelay = value; }
+            get
+            {
+                return _socket.NoDelay;
+            }
+            set
+            {
+                _socket.NoDelay = value;
+            }
         }
 
         public bool Connected
         {
-            get { return _socket.Connected; }
+            get
+            {
+                return _socket.Connected;
+            }
         }
 
         public int Receive(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode)

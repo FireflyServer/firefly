@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading;
 using Firefly.Utils;
-using Owin;
 
 namespace Firefly.Http
 {
@@ -33,7 +32,6 @@ namespace Firefly.Http
             public Func<Action, bool> Flush { get; set; }
             public Action<Exception> End { get; set; }
             public CancellationToken CancellationToken { get; set; }
-
         }
 
         protected MessageBody(Action continuation)
@@ -41,7 +39,8 @@ namespace Firefly.Http
             _continuation = continuation;
         }
 
-        public static MessageBody For(string httpVersion, IDictionary<string, IEnumerable<string>> headers, Action continuation)
+        public static MessageBody For(
+            string httpVersion, IDictionary<string, IEnumerable<string>> headers, Action continuation)
         {
             // see also http://tools.ietf.org/html/rfc2616#section-4.4
 
@@ -75,7 +74,10 @@ namespace Firefly.Http
 
         public bool Drain(Action continuation)
         {
-            if (_subscriber != null) return false;
+            if (_subscriber != null)
+            {
+                return false;
+            }
 
             Subscribe(
                 _ => false,
@@ -117,7 +119,9 @@ namespace Firefly.Http
 
             var continuation = Interlocked.Exchange(ref _continuation, null);
             if (continuation != null)
+            {
                 continuation.Invoke();
+            }
         }
 
         public abstract bool Consume(Baton baton, Action callback, Action<Exception> fault);
@@ -175,7 +179,12 @@ namespace Firefly.Http
                 if (consumed.Count != 0)
                 {
                     if (_subscriber.Write(consumed) &&
-                        _subscriber.Flush(() => { _subscriber.End(null); callback(); }))
+                        _subscriber.Flush(
+                            () =>
+                            {
+                                _subscriber.End(null);
+                                callback();
+                            }))
                     {
                         return true;
                     }
@@ -188,13 +197,14 @@ namespace Firefly.Http
 
 
         /// <summary>
-        /// http://tools.ietf.org/html/rfc2616#section-3.6.1
+        ///   http://tools.ietf.org/html/rfc2616#section-3.6.1
         /// </summary>
         class ForChunkedEncoding : MessageBody
         {
             private int _neededLength;
 
             private Mode _mode = Mode.ChunkSizeLine;
+
             private enum Mode
             {
                 ChunkSizeLine,
@@ -212,64 +222,66 @@ namespace Firefly.Http
 
             public override bool Consume(Baton baton, Action callback, Action<Exception> fault)
             {
-                for (; ; )
+                for (;;)
                 {
                     switch (_mode)
                     {
-                        case Mode.ChunkSizeLine:
-                            var chunkSize = 0;
-                            if (!TakeChunkedLine(baton, ref chunkSize))
-                            {
-                                return false;
-                            }
+                    case Mode.ChunkSizeLine:
+                        var chunkSize = 0;
+                        if (!TakeChunkedLine(baton, ref chunkSize))
+                        {
+                            return false;
+                        }
 
-                            _neededLength = chunkSize;
-                            if (chunkSize == 0)
-                            {
-                                _mode = Mode.Complete;
-                                LocalIntakeFin = true;
-                                _subscriber.End(null);
-                                return false;
-                            }
-                            _mode = Mode.ChunkData;
+                        _neededLength = chunkSize;
+                        if (chunkSize == 0)
+                        {
+                            _mode = Mode.Complete;
+                            LocalIntakeFin = true;
+                            _subscriber.End(null);
+                            return false;
+                        }
+                        _mode = Mode.ChunkData;
+                        break;
+
+                    case Mode.ChunkData:
+                        if (_neededLength == 0)
+                        {
+                            _mode = Mode.ChunkDataCRLF;
                             break;
+                        }
+                        if (baton.Buffer.Count == 0)
+                        {
+                            return false;
+                        }
 
-                        case Mode.ChunkData:
-                            if (_neededLength == 0)
-                            {
-                                _mode = Mode.ChunkDataCRLF;
-                                break;
-                            }
-                            if (baton.Buffer.Count == 0)
-                            {
-                                return false;
-                            }
+                        var consumeLength = Math.Min(_neededLength, baton.Buffer.Count);
+                        _neededLength -= consumeLength;
+                        var consumed = baton.Take(consumeLength);
 
-                            var consumeLength = Math.Min(_neededLength, baton.Buffer.Count);
-                            _neededLength -= consumeLength;
-                            var consumed = baton.Take(consumeLength);
+                        if (_subscriber.Write(consumed) &&
+                            _subscriber.Flush(callback))
+                        {
+                            return true;
+                        }
+                        break;
 
-                            if (_subscriber.Write(consumed) &&
-                                _subscriber.Flush(callback))
-                            {
-                                return true;
-                            }                           
-                            break;
-
-                        case Mode.ChunkDataCRLF:
-                            if (baton.Buffer.Count < 2)
-                                return false;
-                            var crlf = baton.Take(2);
-                            if (crlf.Array[crlf.Offset] != '\r' ||
-                                crlf.Array[crlf.Offset + 1] != '\n')
-                            {
-                                throw new NotImplementedException("INVALID REQUEST FORMAT");
-                            }
-                            _mode = Mode.ChunkSizeLine;
-                            break;
-
-                        default:
+                    case Mode.ChunkDataCRLF:
+                        if (baton.Buffer.Count < 2)
+                        {
+                            return false;
+                        }
+                        var crlf = baton.Take(2);
+                        if (crlf.Array[crlf.Offset] != '\r' ||
+                            crlf.Array[crlf.Offset + 1] != '\n')
+                        {
                             throw new NotImplementedException("INVALID REQUEST FORMAT");
+                        }
+                        _mode = Mode.ChunkSizeLine;
+                        break;
+
+                    default:
+                        throw new NotImplementedException("INVALID REQUEST FORMAT");
                     }
                 }
             }
@@ -277,7 +289,10 @@ namespace Firefly.Http
             private static bool TakeChunkedLine(Baton baton, ref int chunkSizeOut)
             {
                 var remaining = baton.Buffer;
-                if (remaining.Count < 2) return false;
+                if (remaining.Count < 2)
+                {
+                    return false;
+                }
                 var ch0 = remaining.Array[remaining.Offset];
                 var chunkSize = 0;
                 var mode = 0;
@@ -353,6 +368,5 @@ namespace Firefly.Http
                 return false;
             }
         }
-
     }
 }

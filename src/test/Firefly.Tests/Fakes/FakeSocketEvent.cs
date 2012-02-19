@@ -15,6 +15,7 @@ namespace Firefly.Tests.Fakes
         public int Offset { get; set; }
         public int Count { get; set; }
         public IList<ArraySegment<byte>> BufferList { get; set; }
+
         public void SetBuffer(byte[] buffer, int offset, int count)
         {
             Buffer = buffer;

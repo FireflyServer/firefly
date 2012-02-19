@@ -25,22 +25,23 @@ namespace Profile.HeaderParser
         static void Main(string[] args)
         {
             var datas = File.ReadAllText("Headers.txt")
-                .Split(new[] { "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries)
+                .Split(new[] {"\r\n\r\n"}, StringSplitOptions.RemoveEmptyEntries)
                 .Select(chunk => Encoding.Default.GetBytes(chunk + "\r\n\r\nAll of the data"))
                 .ToArray();
 
-            for (; ; )
+            for (;;)
             {
                 var samples = Enumerable.Range(0, 10);
 
                 var measures = Strats()
-                    .Select(s => new
-                    {
-                        Strat = s,
-                        Stopwatch = samples
-                            .Select(x => new Stopwatch())
-                            .ToArray()
-                    }).ToArray();
+                    .Select(
+                        s => new
+                        {
+                            Strat = s,
+                            Stopwatch = samples
+                                .Select(x => new Stopwatch())
+                                .ToArray()
+                        }).ToArray();
 
                 Console.WriteLine("Starting");
                 foreach (var sample in samples)
@@ -56,10 +57,10 @@ namespace Profile.HeaderParser
                                 var strat = measure.Strat();
 
                                 var baton = new Baton(new MemoryPool())
-                                                {
-                                                    Buffer = new ArraySegment<byte>(data),
-                                                    RemoteIntakeFin = false,
-                                                };
+                                {
+                                    Buffer = new ArraySegment<byte>(data),
+                                    RemoteIntakeFin = false,
+                                };
                                 var endOfHeaders = false;
                                 while (!endOfHeaders)
                                 {
@@ -73,13 +74,13 @@ namespace Profile.HeaderParser
                                 if (loop == 0 && sample == 0)
                                 {
                                     after = () =>
-                                                {
-                                                    Console.WriteLine("{0}", strat.GetType().Name);
-                                                    foreach (var kv in strat.Headers)
-                                                    {
-                                                        Console.WriteLine("  {0}: {1}", kv.Key, kv.Value);
-                                                    }
-                                                };
+                                    {
+                                        Console.WriteLine("{0}", strat.GetType().Name);
+                                        foreach (var kv in strat.Headers)
+                                        {
+                                            Console.WriteLine("  {0}: {1}", kv.Key, kv.Value);
+                                        }
+                                    };
                                 }
                             }
                             measure.Stopwatch[sample].Stop();
@@ -90,7 +91,6 @@ namespace Profile.HeaderParser
 
                 foreach (var measure in measures)
                 {
-
                     Console.WriteLine(
                         "{0} {1}\r\n  {2}",
                         measure.Strat().GetType().Name,
