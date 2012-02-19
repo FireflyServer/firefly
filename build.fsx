@@ -4,7 +4,7 @@
 open Fake
 
 // properties
-let version = "0.3"
+let version = "0.4"
 let projectName = "Firefly"
 let projectDescription = "Firefly is a .NET HTTP Server in an assembly."
 let authors = ["Louis DeJardin"]
@@ -55,26 +55,6 @@ Target "ApplyVersion" (fun _ ->
 )
 
 Target "CompileApp" (fun _ ->
-//    AssemblyInfo 
-//        (fun p -> 
-//        {p with
-//            CodeLanguage = CSharp;
-//            AssemblyVersion = version;
-//            AssemblyTitle = "Calculator Command line tool";
-//            AssemblyDescription = "Sample project for FAKE - F# MAKE";
-//            Guid = "A539B42C-CB9F-4a23-8E57-AF4E7CEE5BAA";
-//            OutputFileName = @".\src\app\Calculator\Properties\AssemblyInfo.cs"})
-//
-//    AssemblyInfo 
-//        (fun p -> 
-//        {p with
-//            CodeLanguage = CSharp;
-//            AssemblyVersion = version;
-//            AssemblyTitle = "Calculator library";
-//            AssemblyDescription = "Sample project for FAKE - F# MAKE";
-//            Guid = "EE5621DB-B86B-44eb-987F-9C94BCC98441";
-//            OutputFileName = @".\src\app\CalculatorLib\Properties\AssemblyInfo.cs"})          
-
     MSBuild buildDir "Build" ["Configuration","Release"; "PackageVersion",version] appReferences
         |> Log "AppBuild-Output: "
 )
@@ -138,19 +118,30 @@ Target "PackageNuGet" (fun _ ->
             OutputPath = nugetDir
             AccessKey = getBuildParamOrDefault "nugetkey" ""
             Publish = hasBuildParam "nugetkey" })  "Firefly.nuspec"
-
-    NuGet (fun p -> 
-        {p with 
-            ToolPath = nugetPath              
-            Version = version
-            Project = "Dragonfly"
-            Description = "Dragonfly obsolete - renamed to Firefly"                               
-            Authors = authors
-            Dependencies = []
-            OutputPath = nugetDir
-            AccessKey = getBuildParamOrDefault "nugetkey" ""
-            Publish = hasBuildParam "nugetkey" })  "Dragonfly.nuspec"
 )
+
+
+Target "InstallPackages" (fun _ ->
+  let target = (environVar "HOME") @@ ".nuget";
+  let apply files =
+    for file in files do
+      CopyFile target file
+
+  !! (nugetDir @@ "*.nupkg") |> apply
+)
+
+
+Target "UploadPackages" (fun _ ->
+  let apply files =
+    for file in files do
+      ExecProcess (fun info ->
+                info.FileName <- nugetPath
+                info.WorkingDirectory <- nugetDir |> FullName
+                info.Arguments <-  sprintf "push \"%s\"" (file |> FullName)) (System.TimeSpan.FromMinutes 5.)
+
+  !! (nugetDir @@ "*.nupkg") |> apply
+)
+
 
 
 let Phase name = (
@@ -176,6 +167,8 @@ Phase "Default" <== ["Package"]
 "Compile" <== ["CompileApp"; "CompileTest"]
 "Test" <== ["xUnitTest"]
 "Package" <== ["PackageZip"; "PackageNuGet"]
+"Install" <== ["InstallPackages"]
+"Deploy" <== ["UploadPackages"]
 
 // start build
 Run <| getBuildParamOrDefault "target" "Default"
