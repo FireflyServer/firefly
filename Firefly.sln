@@ -26,11 +26,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{87AEA17F-9DF3-4702-ABFC-9FD3FE5562DD}"
 	ProjectSection(SolutionItems) = preProject
 		build.cmd = build.cmd
-		build.fsx = build.fsx
-		Firefly.nuspec = Firefly.nuspec
+		build.sh = build.sh
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
-		packages.config = packages.config
+		Sakefile.shade = Sakefile.shade
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile.SystemBehaviors", "src\test\Profile.SystemBehaviors\Profile.SystemBehaviors.csproj", "{D09DCA54-3534-4E35-8761-F8DA1FF7FBC9}"
