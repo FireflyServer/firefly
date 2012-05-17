@@ -7,7 +7,7 @@ using Owin;
 
 namespace Firefly.Http
 {
-    public class Connection : IAsyncResult
+    public class Connection 
     {
         private readonly IFireflyService _services;
         private readonly AppDelegate _app;
@@ -190,8 +190,18 @@ namespace Firefly.Http
 
                     _baton.Free();
 
-                    _services.Memory.FreeSocketEvent(_receiveSocketEvent);
-                    _receiveSocketEvent = null;
+                    var receiveSocketEvent = Interlocked.Exchange(ref _receiveSocketEvent, null);
+                    
+                    // this has a race condition
+                    if (receiveSocketEvent.Completed == null)
+                    {
+                        _services.Memory.FreeSocketEvent(receiveSocketEvent);
+                    }
+                    else
+                    {
+                        receiveSocketEvent.Completed = () => _services.Memory.FreeSocketEvent(receiveSocketEvent);
+                    }
+                    
                     _socket.Shutdown(SocketShutdown.Receive);
 
                     var e = new SocketAsyncEventArgs();
@@ -213,39 +223,6 @@ namespace Firefly.Http
             if (!_socketSender.Flush(drained))
             {
                 drained.Invoke();
-            }
-        }
-
-
-        bool IAsyncResult.IsCompleted
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        WaitHandle IAsyncResult.AsyncWaitHandle
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        object IAsyncResult.AsyncState
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        bool IAsyncResult.CompletedSynchronously
-        {
-            get
-            {
-                throw new NotImplementedException();
             }
         }
     }

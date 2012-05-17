@@ -107,7 +107,7 @@ Host: localhost
                 var totalBytes = 0;
                 var buffer = new byte[1024];
                 var totalText = "";
-                for (;;)
+                for (; ; )
                 {
                     var bytes = socket.Receive(buffer);
                     if (bytes == 0)
@@ -168,6 +168,7 @@ Connection: close
 Host: localhost
 
 ");
+                
                 //if (Debugger.IsAttached) responseStarted.Task.Wait();
 
                 //Assert.True(responseStarted.Task.Wait(TimeSpan.FromSeconds(5)));
@@ -176,7 +177,7 @@ Host: localhost
                 var buffer = new byte[1024];
                 var totalText = "";
                 var chunks = "";
-                for (;;)
+                for (; ; )
                 {
                     var bytes = socket.Receive(buffer);
                     if (bytes == 0)
@@ -190,6 +191,49 @@ Host: localhost
                 socket.Disconnect(false);
                 var x = 5;
                 Thread.Sleep(900);
+            }
+        }
+
+        [Fact]
+        void ServerMayCloseSocketWhileBodyIsReceiving()
+        {
+            AppDelegate app = (env, result, fault) =>
+            {
+                var body = (BodyDelegate)env["owin.RequestBody"];
+
+                body.Invoke(
+                    data => false,
+                    drained => false,
+                    ex => { },
+                    CancellationToken.None);
+
+                result("200 OK",
+                    new Dictionary<string, IEnumerable<string>>
+                    {
+                        {"Content-Type", new[]{"text/plain"}}
+                    },
+                    (write, flush, end, cancel) => end(null));
+            };
+
+            using (new ServerFactory().Create(app, 56565))
+            {
+                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
+                socket.Connect("localhost", 56565);
+                socket.Send(
+                    @"GET / HTTP/1.1
+Connection: close
+Host: localhost
+
+");
+
+                for (; ; )
+                {
+                    var data = socket.Receive();
+                    if (string.IsNullOrEmpty(data))
+                        break;
+                }
+
+                Thread.Sleep(300);
             }
         }
     }

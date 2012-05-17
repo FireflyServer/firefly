@@ -13,6 +13,13 @@ namespace Firefly.Tests.Extensions
             socket.Send(bytes);
         }
 
+        public static string Receive(this Socket socket, Encoding encoding = null)
+        {
+            var bytes = new byte[0x4000];
+            var count = socket.Receive(bytes);
+            return (encoding ?? Encoding.Default).GetString(bytes, 0, count);
+        }
+
         public static ArraySegment<byte> ToArraySegment(this string text, Encoding encoding = null)
         {
             return new ArraySegment<byte>((encoding ?? Encoding.Default).GetBytes(text));
