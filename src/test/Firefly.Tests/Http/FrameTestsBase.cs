@@ -10,6 +10,7 @@ namespace Firefly.Tests.Http
         protected readonly FakeApp App;
         protected readonly FakeOutput Output;
         protected readonly FakeInput Input;
+        protected readonly FakeSocket Socket;
         protected readonly Frame Frame;
 
         public FrameTestsBase()
@@ -18,11 +19,13 @@ namespace Firefly.Tests.Http
             App = new FakeApp();
             Output = new FakeOutput();
             Input = new FakeInput();
+            Socket = new FakeSocket();
             Frame = new Frame(
                 new FrameContext
                 {
                     Services = Services,
                     App = App.Call,
+                    Socket = Socket,
                     Write = Output.Write,
                     Flush = Output.Flush,
                     End = Output.End,

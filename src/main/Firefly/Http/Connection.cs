@@ -79,9 +79,10 @@ namespace Firefly.Http
                     {
                         Services = _services,
                         App = _app,
+                        Socket = _socket,
                         Write = _socketSender.Write,
                         Flush = _socketSender.Flush,
-                        End = ProduceEnd
+                        End = ProduceEnd,
                     });
 
                 if (_baton.Buffer.Count != 0)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Firefly.Utils;
@@ -118,6 +119,9 @@ namespace Firefly.Tests.Fakes
         public bool Blocking { get; set; }
         public bool NoDelay { get; set; }
         public bool Connected { get; private set; }
+
+        public EndPoint LocalEndPoint { get; set; }
+        public EndPoint RemoteEndPoint { get; set; }
 
 
         public int Receive(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode)
