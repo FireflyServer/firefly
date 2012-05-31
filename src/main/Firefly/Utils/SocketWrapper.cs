@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Firefly.Utils
@@ -42,6 +43,22 @@ namespace Firefly.Utils
             get
             {
                 return _socket.Connected;
+            }
+        }
+
+        public EndPoint LocalEndPoint
+        {
+            get
+            {
+                return _socket.LocalEndPoint;
+            }
+        }
+
+        public EndPoint RemoteEndPoint
+        {
+            get
+            {
+                return _socket.RemoteEndPoint;
             }
         }
 

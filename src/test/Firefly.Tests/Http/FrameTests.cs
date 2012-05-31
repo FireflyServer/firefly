@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using System.Net;
+using Xunit;
 
 namespace Firefly.Tests.Http
 {
@@ -116,5 +117,23 @@ Content-Length: 10
             Assert.False(App.RequestBody.Ended);
             Assert.Equal("12345", App.RequestBody.Text);
         }
+
+        [Fact]
+        public void ValuesForCommonServerVariablesArePresent()
+        {
+            Socket.LocalEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 80);
+            Socket.RemoteEndPoint = new IPEndPoint(IPAddress.Parse("192.168.1.1"), 12345);
+            Input.Add("GET /hello/world?x=y HTTP/1.1\r\nHost: london\r\nfoo: bar\r\nfrap: quad\r\n\r\n");
+            Input.End();
+            AssertInputState(false, true, "");
+            AssertOutputState(true);
+            Assert.Equal(1, App.CallCount);
+
+            Assert.Equal("127.0.0.1", App.Env["server.LOCAL_ADDR"]);
+            Assert.Equal("80", App.Env["server.SERVER_PORT"]);
+            Assert.Equal("192.168.1.1", App.Env["server.REMOTE_ADDR"]);
+            Assert.Equal("12345", App.Env["server.REMOTE_PORT"]);
+        }
+
     }
 }

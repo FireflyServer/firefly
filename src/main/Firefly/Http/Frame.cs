@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using Firefly.Utils;
@@ -21,6 +23,7 @@ namespace Firefly.Http
     {
         public IFireflyService Services;
         public AppDelegate App;
+        public ISocket Socket;
         public Func<ArraySegment<byte>, bool> Write;
         public Func<Action, bool> Flush;
         public Action<ProduceEndType> End;
@@ -434,6 +437,21 @@ namespace Firefly.Http
             env["owin.RequestBody"] = (BodyDelegate)_messageBody.Subscribe;
             env["owin.RequestScheme"] = "http"; // TODO: pass along information about scheme, cgi headers, etc
             env["owin.Version"] = "1.0";
+
+            var remoteEndPoint = _context.Socket.RemoteEndPoint as IPEndPoint;
+            if (remoteEndPoint != null)
+            {
+                env["server.REMOTE_ADDR"] = remoteEndPoint.Address.ToString();
+                env["server.REMOTE_PORT"] = remoteEndPoint.Port.ToString(CultureInfo.InvariantCulture);
+            }
+
+            var localEndPoint = _context.Socket.LocalEndPoint as IPEndPoint;
+            if (localEndPoint != null)
+            {
+                env["server.LOCAL_ADDR"] = localEndPoint.Address.ToString();
+                env["server.SERVER_PORT"] = localEndPoint.Port.ToString(CultureInfo.InvariantCulture);
+            }
+
             return env;
         }
     }
