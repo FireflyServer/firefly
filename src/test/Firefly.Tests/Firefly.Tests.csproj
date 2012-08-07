@@ -49,6 +49,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="App_Packages\TaskHelpers.Sources.0.1\TaskHelpers.cs" />
+    <Compile Include="App_Packages\TaskHelpers.Sources.0.1\TaskHelpersExtensions.cs" />
+    <Compile Include="Extensions\Net40Extensions.cs" />
     <Compile Include="Fakes\FakeApp.cs" />
     <Compile Include="Fakes\FakeMemoryPool.cs" />
     <Compile Include="Fakes\FakeResponseBody.cs" />

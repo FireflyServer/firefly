@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Owin;
+using Firefly.Tests.Extensions;
 
 namespace Firefly.Tests.Fakes
 {
@@ -10,8 +13,8 @@ namespace Firefly.Tests.Fakes
     {
         public FakeApp()
         {
-            ResponseStatus = "200 OK";
-            ResponseHeaders = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
+            ResponseStatus = 200;
+            ResponseHeaders = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             ResponseBody = new FakeResponseBody();
             OptionReadRequestBody = false;
             OptionCallResultImmediately = true;
@@ -19,67 +22,65 @@ namespace Firefly.Tests.Fakes
 
         public int CallCount { get; set; }
         public IDictionary<string, object> Env { get; set; }
-        public ResultDelegate ResultCallback { get; set; }
+        public Action<ResultParameters> ResultCallback { get; set; }
         public Action<Exception> FaultCallback { get; set; }
 
 
-        public IDictionary<string, IEnumerable<string>> RequestHeaders { get; set; }
+        public IDictionary<string, string[]> RequestHeaders { get; set; }
         public FakeRequestBody RequestBody { get; set; }
 
-        public string ResponseStatus { get; set; }
-        public IDictionary<string, IEnumerable<string>> ResponseHeaders { get; set; }
+        public int ResponseStatus { get; set; }
+        public string ResponseReasonPhrase { get; set; }
+        public IDictionary<string, string[]> ResponseHeaders { get; set; }
+        public IDictionary<string, object> ResponseProperties { get; set; }
         public FakeResponseBody ResponseBody { get; set; }
 
         public bool OptionReadRequestBody { get; set; }
         public bool OptionCallResultImmediately { get; set; }
 
 
-        public void Call(IDictionary<string, object> env, ResultDelegate result, Action<Exception> fault)
+        public Task<ResultParameters> Call(CallParameters call)
         {
             CallCount += 1;
 
-            Env = env;
-            ResultCallback = result;
-            FaultCallback = fault;
+            Env = call.Environment;
 
-            RequestHeaders = (IDictionary<string, IEnumerable<string>>)env["owin.RequestHeaders"];
-            RequestBody = new FakeRequestBody((BodyDelegate)env["owin.RequestBody"]);
+            var tcs = new TaskCompletionSource<ResultParameters>();
+            ResultCallback = tcs.SetResult;
+            FaultCallback = tcs.SetException;
 
+            RequestHeaders = call.Headers;
+            RequestBody = new FakeRequestBody(call.Body);
+
+            var task = TaskHelpers.Completed();
+            if (OptionReadRequestBody)
+            {
+                // read request body to nowhere, then call back result
+                task = task.Then(() => RequestBody.Subscribe(CancellationToken.None));
+            }
             if (OptionCallResultImmediately)
             {
-                if (OptionReadRequestBody)
+                task = task.Then(() => ResultCallback(new ResultParameters
                 {
-                    // read request body to nowhere, then call back result
-                    RequestBody.Subscribe(
-                        _ => false,
-                        _ => false,
-                        _ => result(ResponseStatus, ResponseHeaders, ResponseBody.Subscribe),
-                        CancellationToken.None);
-                }
-                else if (OptionCallResultImmediately)
-                {
-                    // just then call back result, request unconsumed
-                    result(ResponseStatus, ResponseHeaders, ResponseBody.Subscribe);
-                }
+                    Status = ResponseStatus,
+                    Headers = ResponseHeaders,
+                    Body = ResponseBody.Subscribe,
+                    Properties = ResponseProperties
+                }));
             }
-            else
-            {
-                if (OptionReadRequestBody)
+            task.Catch(
+                info =>
                 {
-                    // read request body to nowhere, and leave everything hanging
-                    RequestBody.Subscribe(
-                        _ => false,
-                        _ => false,
-                        _ => { },
-                        CancellationToken.None);
-                }
-            }
+                    FaultCallback(info.Exception);
+                    return info.Handled();
+                });
+            return tcs.Task;
         }
 
 
         public string RequestHeader(string name)
         {
-            IEnumerable<string> values;
+            string[] values;
             if (!RequestHeaders.TryGetValue(name, out values)
                 || values == null
                     || !values.Any())
@@ -91,7 +92,7 @@ namespace Firefly.Tests.Fakes
 
         public string ResponseHeader(string name)
         {
-            IEnumerable<string> values;
+            string[] values;
             if (!ResponseHeaders.TryGetValue(name, out values)
                 || values == null
                     || !values.Any())

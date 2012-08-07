@@ -40,7 +40,7 @@ namespace Profile.Server
             }
         }
 
-        static void App(IDictionary<string, object> env, ResultDelegate result, Action<Exception> fault)
+        static Task<> App(CallParameters call)
         {
             try
             {
