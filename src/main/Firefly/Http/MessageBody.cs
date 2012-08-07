@@ -40,7 +40,7 @@ namespace Firefly.Http
         }
 
         public static MessageBody For(
-            string httpVersion, IDictionary<string, IEnumerable<string>> headers, Action continuation)
+            string httpVersion, IDictionary<string, string[]> headers, Action continuation)
         {
             // see also http://tools.ietf.org/html/rfc2616#section-4.4
 

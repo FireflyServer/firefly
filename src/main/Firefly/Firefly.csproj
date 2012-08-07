@@ -41,8 +41,12 @@
     <AssemblyOriginatorKeyFile>Firefly.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="App_Packages\TaskHelpers.Sources.0.1\TaskHelpers.cs" />
+    <Compile Include="App_Packages\TaskHelpers.Sources.0.1\TaskHelpersExtensions.cs" />
     <Compile Include="FireflyService.cs" />
     <Compile Include="Http\Baton.cs" />
+    <Compile Include="Streams\OutputStream.cs" />
+    <Compile Include="Streams\InputStream.cs" />
     <Compile Include="Http\MessageBody.cs" />
     <Compile Include="IFireflyService.cs" />
     <Compile Include="Utils\Disposable.cs" />
@@ -60,7 +64,6 @@
     <Compile Include="Utils\SocketEventWrapper.cs" />
     <Compile Include="Utils\SocketWrapper.cs" />
     <Compile Include="Utils\SocketSender.cs" />
-    <Compile Include="Workaround.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Owin">

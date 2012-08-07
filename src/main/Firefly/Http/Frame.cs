@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+using Firefly.Streams;
 using Firefly.Utils;
 using Owin;
 
@@ -46,8 +48,8 @@ namespace Firefly.Http
         private string _queryString;
         private string _httpVersion;
 
-        private readonly IDictionary<string, IEnumerable<string>> _headers =
-            new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
+        private readonly IDictionary<string, string[]> _headers =
+            new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
 
         private MessageBody _messageBody;
         private bool _resultStarted;
@@ -70,70 +72,70 @@ namespace Firefly.Http
 
         public bool Consume(Baton baton, Action<Frame> callback, Action<Exception> fault)
         {
-            for (;;)
+            for (; ; )
             {
                 switch (_mode)
                 {
-                case Mode.StartLine:
-                    if (baton.RemoteIntakeFin)
-                    {
-                        _mode = Mode.Terminated;
-                        return false;
-                    }
+                    case Mode.StartLine:
+                        if (baton.RemoteIntakeFin)
+                        {
+                            _mode = Mode.Terminated;
+                            return false;
+                        }
 
-                    if (!TakeStartLine(baton))
-                    {
-                        return false;
-                    }
-
-                    _mode = Mode.MessageHeader;
-                    break;
-
-                case Mode.MessageHeader:
-                    if (baton.RemoteIntakeFin)
-                    {
-                        _mode = Mode.Terminated;
-                        return false;
-                    }
-
-                    var endOfHeaders = false;
-                    while (!endOfHeaders)
-                    {
-                        if (!TakeMessageHeader(baton, out endOfHeaders))
+                        if (!TakeStartLine(baton))
                         {
                             return false;
                         }
-                    }
 
-                    var resumeBody = HandleExpectContinue(callback);
-                    _messageBody = MessageBody.For(
-                        _httpVersion,
-                        _headers,
-                        () =>
+                        _mode = Mode.MessageHeader;
+                        break;
+
+                    case Mode.MessageHeader:
+                        if (baton.RemoteIntakeFin)
                         {
-                            if (!Consume(baton, resumeBody, fault))
+                            _mode = Mode.Terminated;
+                            return false;
+                        }
+
+                        var endOfHeaders = false;
+                        while (!endOfHeaders)
+                        {
+                            if (!TakeMessageHeader(baton, out endOfHeaders))
                             {
-                                resumeBody.Invoke(this);
+                                return false;
                             }
-                        });
-                    _keepAlive = _messageBody.RequestKeepAlive;
-                    _mode = Mode.MessageBody;
-                    baton.Free();
-                    Execute();
-                    return true;
+                        }
 
-                case Mode.MessageBody:
-                    return _messageBody.Consume(baton, () => callback(this), fault);
+                        var resumeBody = HandleExpectContinue(callback);
+                        _messageBody = MessageBody.For(
+                            _httpVersion,
+                            _headers,
+                            () =>
+                            {
+                                if (!Consume(baton, resumeBody, fault))
+                                {
+                                    resumeBody.Invoke(this);
+                                }
+                            });
+                        _keepAlive = _messageBody.RequestKeepAlive;
+                        _mode = Mode.MessageBody;
+                        baton.Free();
+                        Execute();
+                        return true;
 
-                case Mode.Terminated:
-                    return false;
+                    case Mode.MessageBody:
+                        return _messageBody.Consume(baton, () => callback(this), fault);
+
+                    case Mode.Terminated:
+                        return false;
                 }
             }
         }
 
         Action<Frame> HandleExpectContinue(Action<Frame> continuation)
         {
-            IEnumerable<string> expect;
+            string[] expect;
             if (_httpVersion.Equals("HTTP/1.1") &&
                 _headers.TryGetValue("Expect", out expect) &&
                     (expect.FirstOrDefault() ?? "").Equals("100-continue", StringComparison.OrdinalIgnoreCase))
@@ -162,25 +164,31 @@ namespace Firefly.Http
 
         private void Execute()
         {
-            var env = CreateOwinEnvironment();
-            _context.App(
-                env,
-                (status, headers, body) =>
+            var call = CreateCallParameters();
+            var task = _context.App(call);
+            task
+                .Then(result =>
                 {
                     _resultStarted = true;
-                    var responseHeader = CreateResponseHeader(status, headers);
+                    var status = result.Status + " TODO";
+                    var responseHeader = CreateResponseHeader(status, result.Headers);
                     var buffering = _context.Write(responseHeader.Item1);
                     responseHeader.Item2.Dispose();
-                    if (buffering && _context.Flush(
-                        () => body(_context.Write, _context.Flush, ProduceEnd, CancellationToken.None)))
-                    {
-                        return;
-                    }
-                    body(_context.Write, _context.Flush, ProduceEnd, CancellationToken.None);
-                },
-                ProduceEnd);
+                    return result.Body(new OutputStream(_context.Write, _context.Flush, ProduceEnd));
+                    //if (buffering && _context.Flush(
+                    //    () => body(_context.Write, _context.Flush, ProduceEnd, CancellationToken.None)))
+                    //{
+                    //    return;
+                    //}
 
-            return;
+                    //body(_context.Write, _context.Flush, ProduceEnd, CancellationToken.None);
+                })
+                .Then(() => ProduceEnd(null))
+                .Catch(info =>
+                    {
+                        ProduceEnd(info.Exception);
+                        return info.Handled();
+                    });
         }
 
         private void ProduceEnd(Exception ex)
@@ -199,7 +207,7 @@ namespace Firefly.Http
 
 
         private Tuple<ArraySegment<byte>, IDisposable> CreateResponseHeader(
-            string status, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
+            string status, IEnumerable<KeyValuePair<string, string[]>> headers)
         {
             var writer = new MemoryPoolTextWriter(_context.Services.Memory);
             writer.Write(_httpVersion);
@@ -412,29 +420,36 @@ namespace Firefly.Http
 
         private void AddRequestHeader(string name, string value)
         {
-            IEnumerable<string> existing;
-            if (_headers.TryGetValue(name, out existing))
-            {
-                _headers[name] = existing.Concat(new[] {value});
-            }
-            else
+            string[] existing;
+            if (!_headers.TryGetValue(name, out existing) || 
+                existing == null || 
+                existing.Length == 0)
             {
                 _headers[name] = new[] {value};
             }
+            else
+            {
+                _headers[name] = existing.Concat(new[] {value}).ToArray();
+            }
         }
 
-        private IDictionary<string, object> CreateOwinEnvironment()
+        private CallParameters CreateCallParameters()
         {
             IDictionary<string, object> env = new Dictionary<string, object>();
             env["owin.RequestMethod"] = _method;
             env["owin.RequestPath"] = _path;
             env["owin.RequestPathBase"] = "";
             env["owin.RequestQueryString"] = _queryString;
-            env["owin.RequestHeaders"] = _headers;
-            env["owin.RequestBody"] = (BodyDelegate)_messageBody.Subscribe;
+            //env["owin.RequestHeaders"] = _headers;
+            //env["owin.RequestBody"] = (BodyDelegate)_messageBody.Subscribe;
             env["owin.RequestScheme"] = "http"; // TODO: pass along information about scheme, cgi headers, etc
             env["owin.Version"] = "1.0";
-            return env;
+            return new CallParameters
+            {
+                Environment = env,
+                Headers = _headers,
+                Body = new InputStream(_messageBody.Subscribe),
+            };
         }
     }
 }
