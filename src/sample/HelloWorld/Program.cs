@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using Firefly.Http;
 using Owin;
 
@@ -19,20 +20,23 @@ namespace HelloWorld
             }
         }
 
-        private static void App(IDictionary<string, object> env, ResultDelegate result, Action<Exception> fault)
+        private static Task<ResultParameters> App(CallParameters call)
         {
-            result(
-                "200 OK",
-                new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase)
+            return TaskHelpers.FromResult(new ResultParameters
+            {
+                Status = 200,
+                Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
                 {
                     {"Content-Type", new[] {"text/plain"}}
                 },
-                (write, flush, end, cancel) =>
+                Body = output =>
                 {
                     var bytes = Encoding.Default.GetBytes("Hello world!");
-                    write(new ArraySegment<byte>(bytes));
-                    end(null);
-                });
+                    output.Write(bytes, 0, bytes.Length);
+                    return TaskHelpers.Completed();
+                },
+                Properties = new Dictionary<string, object>()
+            });
         }
     }
 }
