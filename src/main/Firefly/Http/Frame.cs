@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -164,9 +165,7 @@ namespace Firefly.Http
 
         private void Execute()
         {
-            var call = CreateCallParameters();
-            var task = _context.App(call);
-            task
+            _context.App(CreateCallParameters())
                 .Then(result =>
                 {
                     _resultStarted = true;
@@ -174,15 +173,15 @@ namespace Firefly.Http
                     var responseHeader = CreateResponseHeader(status, result.Headers);
                     var buffering = _context.Write(responseHeader.Item1);
                     responseHeader.Item2.Dispose();
-                    return result.Body(new OutputStream(_context.Write, _context.Flush, ProduceEnd));
-                    //if (buffering && _context.Flush(
-                    //    () => body(_context.Write, _context.Flush, ProduceEnd, CancellationToken.None)))
-                    //{
-                    //    return;
-                    //}
 
-                    //body(_context.Write, _context.Flush, ProduceEnd, CancellationToken.None);
+                    var tcs = new TaskCompletionSource<Func<Stream, Task>>();
+                    if (!buffering || !_context.Flush(() => tcs.SetResult(result.Body)))
+                    {
+                        tcs.SetResult(result.Body);
+                    }
+                    return tcs.Task;
                 })
+                .Then(body => body(new OutputStream(_context.Write, _context.Flush)))
                 .Then(() => ProduceEnd(null))
                 .Catch(info =>
                     {
@@ -421,15 +420,15 @@ namespace Firefly.Http
         private void AddRequestHeader(string name, string value)
         {
             string[] existing;
-            if (!_headers.TryGetValue(name, out existing) || 
-                existing == null || 
+            if (!_headers.TryGetValue(name, out existing) ||
+                existing == null ||
                 existing.Length == 0)
             {
-                _headers[name] = new[] {value};
+                _headers[name] = new[] { value };
             }
             else
             {
-                _headers[name] = existing.Concat(new[] {value}).ToArray();
+                _headers[name] = existing.Concat(new[] { value }).ToArray();
             }
         }
 

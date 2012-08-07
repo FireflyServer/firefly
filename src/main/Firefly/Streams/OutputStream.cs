@@ -7,13 +7,11 @@ namespace Firefly.Streams
     {
         readonly Func<ArraySegment<byte>, bool> _write;
         readonly Func<Action, bool> _flush;
-        readonly Action<Exception> _produceEnd;
 
-        public OutputStream(Func<ArraySegment<byte>, bool> write, Func<Action, bool> flush, Action<Exception> produceEnd)
+        public OutputStream(Func<ArraySegment<byte>, bool> write, Func<Action, bool> flush)
         {
             _write = write;
             _flush = flush;
-            _produceEnd = produceEnd;
         }
 
         public override void Flush()
