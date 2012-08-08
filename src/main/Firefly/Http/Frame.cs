@@ -169,7 +169,8 @@ namespace Firefly.Http
                 .Then(result =>
                 {
                     _resultStarted = true;
-                    var status = result.Status + " TODO";
+
+                    var status = ReasonPhrases.ToStatus(result.Status, GetReasonPhrase(result.Properties));
                     var responseHeader = CreateResponseHeader(status, result.Headers);
                     var buffering = _context.Write(responseHeader.Item1);
                     responseHeader.Item2.Dispose();
@@ -188,6 +189,19 @@ namespace Firefly.Http
                         ProduceEnd(info.Exception);
                         return info.Handled();
                     });
+        }
+
+        static string GetReasonPhrase(IDictionary<string, object> properties)
+        {
+            string reasonPhrase = null;
+            object reasonPhraseValue;
+            if (properties != null &&
+                properties.TryGetValue("owin.ReasonPhrase", out reasonPhraseValue) &&
+                reasonPhraseValue != null)
+            {
+                reasonPhrase = Convert.ToString(reasonPhraseValue);
+            }
+            return reasonPhrase;
         }
 
         private void ProduceEnd(Exception ex)

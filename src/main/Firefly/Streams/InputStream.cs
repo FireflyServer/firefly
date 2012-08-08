@@ -33,34 +33,26 @@ namespace Firefly.Streams
             throw new NotImplementedException();
         }
 
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+        {
+            return base.BeginRead(buffer, offset, count, callback, state);
+        }
+        
+        public override int EndRead(IAsyncResult asyncResult)
+        {
+            return base.EndRead(asyncResult);
+        }
+
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new NotImplementedException();
         }
 
-        public override bool CanRead
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
+        public override bool CanRead { get { return true; } }
 
-        public override bool CanSeek
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
+        public override bool CanSeek { get { return false; } }
 
-        public override bool CanWrite
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
+        public override bool CanWrite { get { return false; } }
 
         public override long Length
         {

@@ -56,11 +56,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\HeaderUtils.cs" />
     <Compile Include="Utils\IMemoryPool.cs" />
+    <Compile Include="Utils\InputSender.cs" />
     <Compile Include="Utils\IServerTrace.cs" />
     <Compile Include="Utils\ISocket.cs" />
     <Compile Include="Utils\MemoryPool.cs" />
     <Compile Include="Utils\MemoryPoolTextWriter.cs" />
     <Compile Include="Utils\NullServerTrace.cs" />
+    <Compile Include="Utils\ReasonPhrases.cs" />
     <Compile Include="Utils\SocketEventWrapper.cs" />
     <Compile Include="Utils\SocketWrapper.cs" />
     <Compile Include="Utils\SocketSender.cs" />
