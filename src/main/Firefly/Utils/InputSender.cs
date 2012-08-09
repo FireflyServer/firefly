@@ -9,11 +9,9 @@ namespace Firefly.Utils
         readonly IFireflyService _services;
         readonly object _lock = new object();
 
-        int _pushActive;
         Result _pushResult;
         Action<Result> _pushCallback;
 
-        int _pullActive;
         Result _pullResult;
         Action<Result> _pullCallback;
 

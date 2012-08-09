@@ -125,7 +125,11 @@ namespace Firefly.Streams
             {
                 get
                 {
-                    return _waitHandle ?? Interlocked.CompareExchange(ref _waitHandle, IsCompleted ? CompletedWaitHandle : new ManualResetEvent(false), null);
+                    if (_waitHandle != null)
+                        return _waitHandle;
+
+                    var newHandle = IsCompleted ? CompletedWaitHandle : new ManualResetEvent(false);
+                    return Interlocked.CompareExchange(ref _waitHandle, newHandle, null) ?? newHandle;
                 }
             }
 
