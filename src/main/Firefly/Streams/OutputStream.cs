@@ -16,7 +16,7 @@ namespace Firefly.Streams
 
         public override void Flush()
         {
-            throw new NotImplementedException();
+            _flush(null);
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -43,7 +43,7 @@ namespace Firefly.Streams
         {
             get
             {
-                throw new NotImplementedException();
+                return false;
             }
         }
 
@@ -51,7 +51,7 @@ namespace Firefly.Streams
         {
             get
             {
-                throw new NotImplementedException();
+                return false;
             }
         }
 
@@ -59,7 +59,7 @@ namespace Firefly.Streams
         {
             get
             {
-                throw new NotImplementedException();
+                return true;
             }
         }
 

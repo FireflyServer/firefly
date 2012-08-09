@@ -7,7 +7,7 @@ using Owin;
 
 namespace Firefly.Http
 {
-    public class Connection 
+    public class Connection
     {
         private readonly IFireflyService _services;
         private readonly AppDelegate _app;
@@ -19,7 +19,7 @@ namespace Firefly.Http
         private Frame _frame;
 
         private Action<Exception> _fault;
-        private Action<Frame> _frameConsumeCallback;
+        private Action<Frame, Exception> _frameConsumeCallback;
         private ISocketEvent _receiveSocketEvent;
         private Action _receiveAsyncCompleted;
         private Frame _receiveAsyncCompletedFrame;
@@ -45,8 +45,12 @@ namespace Firefly.Http
             _receiveSocketEvent.SetBuffer(_services.Memory.Empty, 0, 0);
 
 
-            _frameConsumeCallback = frame =>
+            _frameConsumeCallback = (frame,error) =>
             {
+                if (error!=null)
+                {
+                    _fault(error);
+                }
                 try
                 {
                     Go(false, frame);
@@ -88,8 +92,7 @@ namespace Firefly.Http
                 {
                     if (frame.Consume(
                         _baton,
-                        _frameConsumeCallback,
-                        _fault))
+                        _frameConsumeCallback))
                     {
                         return;
                     }
@@ -129,8 +132,7 @@ namespace Firefly.Http
 
                 if (frame.Consume(
                     _baton,
-                    _frameConsumeCallback,
-                    _fault))
+                    _frameConsumeCallback))
                 {
                     return;
                 }
@@ -179,44 +181,44 @@ namespace Firefly.Http
             {
                 switch (endType)
                 {
-                case ProduceEndType.SocketShutdownSend:
-                    _socket.Shutdown(SocketShutdown.Send);
-                    break;
-                case ProduceEndType.ConnectionKeepAlive:
-                    ThreadPool.QueueUserWorkItem(_ => Go(true, null));
-                    break;
-                case ProduceEndType.SocketDisconnect:
-                    _services.Trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+                    case ProduceEndType.SocketShutdownSend:
+                        _socket.Shutdown(SocketShutdown.Send);
+                        break;
+                    case ProduceEndType.ConnectionKeepAlive:
+                        ThreadPool.QueueUserWorkItem(_ => Go(true, null));
+                        break;
+                    case ProduceEndType.SocketDisconnect:
+                        _services.Trace.Event(TraceEventType.Stop, TraceMessage.Connection);
 
-                    _baton.Free();
+                        _baton.Free();
 
-                    var receiveSocketEvent = Interlocked.Exchange(ref _receiveSocketEvent, null);
-                    
-                    // this has a race condition
-                    if (receiveSocketEvent.Completed == null)
-                    {
-                        _services.Memory.FreeSocketEvent(receiveSocketEvent);
-                    }
-                    else
-                    {
-                        receiveSocketEvent.Completed = () => _services.Memory.FreeSocketEvent(receiveSocketEvent);
-                    }
-                    
-                    _socket.Shutdown(SocketShutdown.Receive);
+                        var receiveSocketEvent = Interlocked.Exchange(ref _receiveSocketEvent, null);
 
-                    var e = new SocketAsyncEventArgs();
-                    Action cleanup = () =>
-                    {
-                        e.Dispose();
-                        _disconnected(_socket);
-                    };
+                        // this has a race condition
+                        if (receiveSocketEvent.Completed == null)
+                        {
+                            _services.Memory.FreeSocketEvent(receiveSocketEvent);
+                        }
+                        else
+                        {
+                            receiveSocketEvent.Completed = () => _services.Memory.FreeSocketEvent(receiveSocketEvent);
+                        }
 
-                    e.Completed += (_, __) => cleanup();
-                    if (!_socket.DisconnectAsync(e))
-                    {
-                        cleanup();
-                    }
-                    break;
+                        _socket.Shutdown(SocketShutdown.Receive);
+
+                        var e = new SocketAsyncEventArgs();
+                        Action cleanup = () =>
+                        {
+                            e.Dispose();
+                            _disconnected(_socket);
+                        };
+
+                        e.Completed += (_, __) => cleanup();
+                        if (!_socket.DisconnectAsync(e))
+                        {
+                            cleanup();
+                        }
+                        break;
                 }
             };
 

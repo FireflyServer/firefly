@@ -71,7 +71,7 @@ namespace Firefly.Http
             }
         }
 
-        public bool Consume(Baton baton, Action<Frame> callback, Action<Exception> fault)
+        public bool Consume(Baton baton, Action<Frame, Exception> callback)
         {
             for (; ; )
             {
@@ -114,10 +114,17 @@ namespace Firefly.Http
                             _headers,
                             () =>
                             {
-                                if (!Consume(baton, resumeBody, fault))
+                                try
                                 {
-                                    resumeBody.Invoke(this);
+                                    if (Consume(baton, resumeBody))
+                                        return;
                                 }
+                                catch (Exception ex)
+                                {
+                                    resumeBody.Invoke(this, ex);
+                                    return;
+                                }
+                                resumeBody.Invoke(this, null);
                             });
                         _keepAlive = _messageBody.RequestKeepAlive;
                         _mode = Mode.MessageBody;
@@ -126,7 +133,7 @@ namespace Firefly.Http
                         return true;
 
                     case Mode.MessageBody:
-                        return _messageBody.Consume(baton, () => callback(this), fault);
+                        return _messageBody.Consume(baton, ex => callback(this, ex));
 
                     case Mode.Terminated:
                         return false;
@@ -134,28 +141,28 @@ namespace Firefly.Http
             }
         }
 
-        Action<Frame> HandleExpectContinue(Action<Frame> continuation)
+        Action<Frame, Exception> HandleExpectContinue(Action<Frame, Exception> continuation)
         {
             string[] expect;
             if (_httpVersion.Equals("HTTP/1.1") &&
                 _headers.TryGetValue("Expect", out expect) &&
                     (expect.FirstOrDefault() ?? "").Equals("100-continue", StringComparison.OrdinalIgnoreCase))
             {
-                return frame =>
+                return (frame, error) =>
                 {
                     if (_resultStarted)
                     {
-                        continuation.Invoke(frame);
+                        continuation.Invoke(frame, null);
                     }
                     else
                     {
                         var bytes = Encoding.Default.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
                         var isasync =
                             _context.Write(new ArraySegment<byte>(bytes)) &&
-                                _context.Flush(() => continuation(frame));
+                                _context.Flush(() => continuation(frame, null));
                         if (!isasync)
                         {
-                            continuation.Invoke(frame);
+                            continuation.Invoke(frame, null);
                         }
                     }
                 };
@@ -461,7 +468,12 @@ namespace Firefly.Http
             {
                 Environment = env,
                 Headers = _headers,
-                Body = new InputStream(_messageBody.Subscribe),
+                Body = new InputStream(()=>
+                {
+                    var sender = new InputSender(_context.Services);
+                    _messageBody.Subscribe(sender.Push);
+                    return sender;
+                }),
             };
         }
     }
