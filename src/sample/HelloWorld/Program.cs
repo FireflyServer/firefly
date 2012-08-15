@@ -5,9 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Firefly.Http;
 using Gate;
-using Gate.Builder;
 using Gate.Middleware;
 using Owin;
+using Owin.Builder;
 
 namespace HelloWorld
 {
@@ -17,12 +17,13 @@ namespace HelloWorld
         {
             var server = new ServerFactory();
 
-            var app = new AppBuilder().Build<AppDelegate>(
-                builder => builder
-                    .Use(ShowFormValues())
-                    .Use(UrlRewrite("/", "/index.html"))
-                    .UseStatic()
-                    .Run(App));
+            var builder = new AppBuilder();
+            builder
+                .UseFunc(ShowFormValues())
+                .UseFunc(UrlRewrite("/", "/index.html"))
+                .UseStatic()
+                .Run(new Program());
+            var app = builder.Build<AppDelegate>();
 
             using (server.Create(app, 8080))
             {
@@ -32,7 +33,7 @@ namespace HelloWorld
             }
         }
 
-        private static Task<ResultParameters> App(CallParameters call)
+        public Task<ResultParameters> Invoke(CallParameters call)
         {
             return TaskHelpers.FromResult(new ResultParameters
             {

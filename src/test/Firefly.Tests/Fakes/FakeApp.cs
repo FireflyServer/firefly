@@ -16,6 +16,7 @@ namespace Firefly.Tests.Fakes
             ResponseStatus = 200;
             ResponseHeaders = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             ResponseBody = new FakeResponseBody();
+            ResponseProperties = new Dictionary<string, object>();
             OptionReadRequestBody = false;
             OptionCallResultImmediately = true;
         }
@@ -60,13 +61,21 @@ namespace Firefly.Tests.Fakes
             }
             if (OptionCallResultImmediately)
             {
-                task = task.Then(() => ResultCallback(new ResultParameters
+                task = task.Then(() =>
                 {
-                    Status = ResponseStatus,
-                    Headers = ResponseHeaders,
-                    Body = ResponseBody.Subscribe,
-                    Properties = ResponseProperties
-                }));
+                    if (!string.IsNullOrEmpty(ResponseReasonPhrase))
+                    {
+                        ResponseProperties["owin.ReasonPhrase"] = ResponseReasonPhrase;
+                    }
+                    ResultCallback(
+                        new ResultParameters
+                        {
+                            Status = ResponseStatus,
+                            Headers = ResponseHeaders,
+                            Body = ResponseBody.Subscribe,
+                            Properties = ResponseProperties
+                        });
+                });
             }
             task.Catch(
                 info =>

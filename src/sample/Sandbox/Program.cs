@@ -6,14 +6,15 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Firefly.Http;
 using Firefly.Tests.Extensions;
 using Firefly.Utils;
 using Gate;
 using Gate.Adapters.Nancy;
-using Gate.Builder;
 using Gate.Middleware;
 using Owin;
+using Owin.Builder;
 
 namespace Sandbox
 {
@@ -25,7 +26,7 @@ namespace Sandbox
 
             //var workingTitleApp = StartupWorkingTitleApp();
 
-            for (;;)
+            for (; ; )
             {
                 var input = Console.ReadLine();
                 if (input == "exit")
@@ -75,7 +76,7 @@ namespace Sandbox
                         var nativeOverlapped = overlapped.Pack(Iocb, null);
                         Trace.WriteLine(string.Format("{0}", new IntPtr(nativeOverlapped)));
 
-                        wsabuf = new WSABUF {buf = Marshal.AllocCoTaskMem(512), len = 512};
+                        wsabuf = new WSABUF { buf = Marshal.AllocCoTaskMem(512), len = 512 };
                         var result2 = WSARecv2(
                             socket.Handle,
                             ref wsabuf,
@@ -187,8 +188,7 @@ Connection: close
 
         private static IDisposable StartupNancyApp()
         {
-            var builder = new AppBuilder();
-            var app = builder.Build(Configuration);
+            var app = new AppBuilder().BuildNew<AppDelegate>(Configuration);
             var server = new ServerFactory(new StdoutTrace()).Create(app, 8080);
 
             Console.WriteLine("Running on localhost:8080");
@@ -198,8 +198,8 @@ Connection: close
         private static void Configuration(IAppBuilder builder)
         {
             builder
-                .Use<AppDelegate, string, string>(SetResponseHeader, "Server", "Firefly")
-                .Use(ShowCalls)
+                .UseFunc<AppDelegate>(app => SetResponseHeader(app, "Server", "Firefly"))
+                .UseFunc<AppDelegate>(ShowCalls)
                 .UseWebSockets("/socketserver", OnConnection)
                 .UseChunked()
                 .RunNancy();
@@ -215,9 +215,9 @@ Connection: close
                     Console.WriteLine("Incoming opcode:{0}", opcode);
                     switch (opcode)
                     {
-                    case 1:
-                        Console.WriteLine(Encoding.Default.GetString(data.Array, data.Offset, data.Count));
-                        break;
+                        case 1:
+                            Console.WriteLine(Encoding.Default.GetString(data.Array, data.Offset, data.Count));
+                            break;
                     }
                     outgoing(opcode, data);
                 };
@@ -225,25 +225,20 @@ Connection: close
 
         private static AppDelegate SetResponseHeader(AppDelegate app, string name, string value)
         {
-            return
-                (env, result, fault) =>
-                    app(
-                        env,
-                        (status, headers, body) =>
-                        {
-                            headers[name] = new[] {value};
-                            result(status, headers, body);
-                        },
-                        fault);
+            return call => app(call).Then(result =>
+            {
+                result.Headers[name] = new[] { value };
+                return result;
+            });
         }
 
         private static AppDelegate ShowCalls(AppDelegate app)
         {
             return
-                (env, result, fault) =>
+                call =>
                 {
                     Console.WriteLine("==========");
-                    foreach (var kv in env)
+                    foreach (var kv in call.Environment)
                     {
                         if (kv.Value is IDictionary<string, IEnumerable<string>>)
                         {
@@ -260,22 +255,19 @@ Connection: close
                             Console.WriteLine(kv.Key + " " + kv.Value);
                         }
                     }
-                    app(
-                        env,
-                        (status, headers, body) =>
+                    return app(call).Then(result =>
+                    {
+                        Console.WriteLine("----------");
+                        Console.WriteLine(result.Status);
+                        foreach (var kv in result.Headers)
                         {
-                            Console.WriteLine("----------");
-                            Console.WriteLine(status);
-                            foreach (var kv in headers)
+                            foreach (var value in kv.Value)
                             {
-                                foreach (var value in kv.Value)
-                                {
-                                    Console.WriteLine(kv.Key + " " + value);
-                                }
+                                Console.WriteLine(kv.Key + " " + value);
                             }
-                            result(status, headers, body);
-                        },
-                        fault);
+                        }
+                        return result;
+                    });
                 };
         }
     }

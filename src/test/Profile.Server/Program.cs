@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
+using System.Threading.Tasks;
 using Firefly.Http;
 using Firefly.Utils;
 using Owin;
@@ -25,147 +27,93 @@ namespace Profile.Server
             using (new ServerFactory(new Tracer()).Create(App, 9090))
             {
                 Console.WriteLine("Enter exit to exit:");
-                for (;;)
+                for (; ; )
                 {
                     var cmd = Console.ReadLine();
                     switch (cmd)
                     {
-                    case "gc":
-                        GC.Collect();
-                        break;
-                    case "exit":
-                        return;
+                        case "gc":
+                            GC.Collect();
+                            break;
+                        case "exit":
+                            return;
                     }
                 }
             }
         }
 
-        static Task<> App(CallParameters call)
+        static Task<ResultParameters> App(CallParameters call)
         {
-            try
+            var requestPath = (string)call.Environment[OwinConstants.RequestPath];
+            switch (requestPath)
             {
-                var requestPath = (string)env[OwinConstants.RequestPath];
-                switch (requestPath)
-                {
                 case "/baseline":
-                    Baseline(env, result, fault);
-                    break;
+                    return Baseline(call);
                 case "/favicon.ico":
-                    Baseline(env, result, fault);
-                    break;
+                    return Baseline(call);
                 case "/":
-                    Welcome(env, result, fault);
-                    break;
+                    return Welcome(call);
                 default:
-                    NotFound(env, result, fault);
-                    break;
-                }
-            }
-            catch (Exception ex)
-            {
-                try
-                {
-                    fault(ex);
-                }
-                catch
-                {
-                    Console.WriteLine(ex.Message);
-                }
+                    return NotFound(call);
             }
         }
 
-        private static void NotFound(IDictionary<string, object> env, ResultDelegate result, Action<Exception> fault)
+        private static Task<ResultParameters> NotFound(CallParameters call)
         {
-            result(
-                "404 Not Found",
-                new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase)
+            return TaskHelpers.FromResult(
+                new ResultParameters
                 {
-                    {"Content-Type", new[] {"text/plain"}},
-                    {"Content-Length", new[] {"0"}},
-                },
-                (write, flush, end, cancel) =>
-                {
-                    try
+                    Status = 404,
+                    Properties = new Dictionary<string, object>(),
+                    Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
                     {
-                        end(null);
-                    }
-                    catch (Exception ex)
-                    {
-                        try
-                        {
-                            end(ex);
-                        }
-                        catch
-                        {
-                            Console.WriteLine(ex.Message);
-                        }
-                    }
-                }
-                );
+                        {"Content-Type", new[] {"text/plain"}},
+                        {"Content-Length", new[] {"0"}},
+                    },
+                    Body = output => TaskHelpers.Completed()
+                });
         }
 
-        private static void Baseline(IDictionary<string, object> env, ResultDelegate result, Action<Exception> fault)
+        private static Task<ResultParameters> Baseline(CallParameters call)
         {
-            result(
-                "200 OK",
-                new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase)
+            return TaskHelpers.FromResult(
+                new ResultParameters
                 {
-                    {"Content-Type", new[] {"text/plain"}},
-                    {"Content-Length", new[] {"8"}},
-                },
-                (write, flush, end, cancel) =>
-                {
-                    try
+                    Status = 200,
+                    Properties = new Dictionary<string, object>(),
+                    Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        {"Content-Type", new[] {"text/plain"}},
+                        {"Content-Length", new[] {"8"}},
+                    },
+                    Body = output =>
                     {
                         var bytes = Encoding.Default.GetBytes("Baseline");
-                        write(new ArraySegment<byte>(bytes));
-                        end(null);
+                        output.Write(bytes, 0, bytes.Length);
+                        return TaskHelpers.Completed();
                     }
-                    catch (Exception ex)
-                    {
-                        try
-                        {
-                            end(ex);
-                        }
-                        catch
-                        {
-                            Console.WriteLine(ex.Message);
-                        }
-                    }
-                }
-                );
+                });
         }
 
-        private static void Welcome(IDictionary<string, object> env, ResultDelegate result, Action<Exception> fault)
+        private static Task<ResultParameters> Welcome(CallParameters call)
         {
-            result(
-                "200 OK",
-                new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase)
+            return TaskHelpers.FromResult(
+                new ResultParameters
                 {
-                    {"Content-Type", new[] {"text/html"}},
-                    {"Content-Length", new[] {WelcomeText.Length.ToString()}},
-                },
-                (write, flush, end, cancel) =>
-                {
-                    try
+                    Status = 200,
+                    Properties = new Dictionary<string, object>(),
+                    Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        {"Content-Type", new[] {"text/html"}},
+                        {"Content-Length", new[] {WelcomeText.Length.ToString(CultureInfo.InvariantCulture)}},
+                    },
+                    Body = output =>
                     {
                         var bytes = Encoding.Default.GetBytes(WelcomeText);
-                        write(new ArraySegment<byte>(bytes));
-                        end(null);
+                        output.Write(bytes, 0, bytes.Length);
+                        return TaskHelpers.Completed();
                     }
-                    catch (Exception ex)
-                    {
-                        try
-                        {
-                            end(ex);
-                        }
-                        catch
-                        {
-                            Console.WriteLine(ex.Message);
-                        }
-                    }
-                }
-                );
+                });
         }
 
         private static string WelcomeText =

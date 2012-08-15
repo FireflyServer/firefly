@@ -11,9 +11,11 @@ namespace Firefly.Utils
 
         Result _pushResult;
         Action<Result> _pushCallback;
+        bool _pushNoMore;
 
         Result _pullResult;
         Action<Result> _pullCallback;
+        bool _pullNoMore;
 
         public InputSender(IFireflyService services)
         {
@@ -82,24 +84,27 @@ namespace Firefly.Utils
                 continuation.Invoke();
             }
             return result;
-
         }
 
         Action Tranceive(ref Result pushResult, ref Result pullResult)
         {
-            if (Decoupled)
+            if (Decoupled || _pullNoMore || _pushNoMore)
             {
                 if (pushResult.Pending)
                 {
                     pushResult.Pending = false;
                     var pushArray = pushResult.Message.Buffer;
-                    pushResult.Message.Buffer = new ArraySegment<byte>(pushArray.Array, pushArray.Offset + pushArray.Count, 0);
+                    pushResult.Message.Buffer = pushArray.Array == null ? default(ArraySegment<byte>) : new ArraySegment<byte>(pushArray.Array, pushArray.Offset, pushArray.Count);
+                    pushResult.Message.Fin = _pullNoMore;
+                    pushResult.Message.Error = null;
                 }
                 if (pullResult.Pending)
                 {
                     pullResult.Pending = false;
                     var pullArray = pullResult.Message.Buffer;
-                    pullResult.Message.Buffer = new ArraySegment<byte>(pullArray.Array, pullArray.Offset, 0);
+                    pullResult.Message.Buffer = pullArray.Array == null ? default(ArraySegment<byte>) : new ArraySegment<byte>(pullArray.Array, pullArray.Offset, 0);
+                    pullResult.Message.Fin = _pushNoMore;
+                    pullResult.Message.Error = null;
                 }
             }
             else
@@ -128,6 +133,9 @@ namespace Firefly.Utils
                         pullArray.Offset,
                         bytesTransfered);
                 }
+
+                _pushNoMore |= pushResult.Message.Fin || (pushResult.Message.Error != null);
+                _pullNoMore |= pullResult.Message.Fin || (pullResult.Message.Error != null);
 
                 var fin = pushResult.Message.Fin;
                 pushResult.Message.Fin = pullResult.Message.Fin;
