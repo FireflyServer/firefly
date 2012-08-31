@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Firefly.Http;
 using Firefly.Utils;
-using Owin;
 
 namespace Profile.Server
 {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -8,11 +9,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Firefly.Http;
 using Firefly.Tests.Extensions;
-using Owin;
 using Xunit;
 
 namespace Firefly.Tests.Http
 {
+    using AppDelegate = Func<IDictionary<string, object>, Task>;
+
     public class ServerTests
     {
         [Fact]
@@ -48,13 +50,7 @@ namespace Firefly.Tests.Http
             AppDelegate app = call =>
             {
                 called.TrySetResult(true);
-                return TaskHelpers.FromResult(new ResultParameters
-                {
-                    Status = 200,
-                    Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase),
-                    Body = output => TaskHelpers.Completed(),
-                    Properties = new Dictionary<string, object>(),
-                });
+                return TaskHelpers.Completed();
             };
 
             using (new ServerFactory().Create(app, 56567))
@@ -78,22 +74,14 @@ Host: localhost
 
             AppDelegate app = call =>
             {
-                return TaskHelpers.FromResult(new ResultParameters
+                var output = (Stream)call["owin.ResponseBody"];
+                var data = "Hello world!\r\n".ToArraySegment();
+                foreach (var loop in Enumerable.Range(0, 10000))
                 {
-                    Status = 200,
-                    Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase),
-                    Body = output =>
-                    {
-                        var data = "Hello world!\r\n".ToArraySegment();
-                        foreach (var loop in Enumerable.Range(0, 10000))
-                        {
-                            output.Write(data.Array,data.Offset,data.Count);
-                        }
-                        responseEnded.TrySetResult(true);
-                        return TaskHelpers.Completed();
-                    },
-                    Properties = new Dictionary<string, object>(),
-                });
+                    output.Write(data.Array, data.Offset, data.Count);
+                }
+                responseEnded.TrySetResult(true);
+                return TaskHelpers.Completed();
             };
             using (new ServerFactory().Create(app, 56567))
             {

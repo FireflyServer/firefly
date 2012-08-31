@@ -4,11 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Owin;
 using Firefly.Tests.Extensions;
 
 namespace Firefly.Tests.Fakes
 {
+    using AppFunc = Func<IDictionary<string, object>, Task>;
     public class FakeApp
     {
         public FakeApp()
@@ -23,7 +23,7 @@ namespace Firefly.Tests.Fakes
 
         public int CallCount { get; set; }
         public IDictionary<string, object> Env { get; set; }
-        public Action<ResultParameters> ResultCallback { get; set; }
+        public Action ResultCallback { get; set; }
         public Action<Exception> FaultCallback { get; set; }
 
 
@@ -40,18 +40,31 @@ namespace Firefly.Tests.Fakes
         public bool OptionCallResultImmediately { get; set; }
 
 
-        public Task<ResultParameters> Call(CallParameters call)
+        public Task Call(IDictionary<string, object> env)
         {
             CallCount += 1;
 
-            Env = call.Environment;
+            Env = env;
 
-            var tcs = new TaskCompletionSource<ResultParameters>();
-            ResultCallback = tcs.SetResult;
+            var tcs = new TaskCompletionSource<object>();
+            ResultCallback = () =>
+            {
+                env["owin.ResponseStatusCode"] = ResponseStatus;
+                env["owin.ResponseReasonPhrase"] = ResponseReasonPhrase;
+                var headers = (IDictionary<string, string[]>)env["owin.ResponseHeaders"];
+                foreach(var kv in ResponseHeaders)
+                {
+                    headers[kv.Key] = kv.Value;
+                }
+                var output = (Stream)env["owin.ResponseBody"];
+                ResponseBody
+                    .Subscribe(output)
+                    .CopyResultToCompletionSource(tcs, null);
+            };
             FaultCallback = tcs.SetException;
 
-            RequestHeaders = call.Headers;
-            RequestBody = new FakeRequestBody(call.Body);
+            RequestHeaders = (IDictionary<string, string[]>)env["owin.RequestHeaders"];
+            RequestBody = new FakeRequestBody((Stream)env["owin.RequestBody"]);
 
             var task = TaskHelpers.Completed();
             if (OptionReadRequestBody)
@@ -61,21 +74,7 @@ namespace Firefly.Tests.Fakes
             }
             if (OptionCallResultImmediately)
             {
-                task = task.Then(() =>
-                {
-                    if (!string.IsNullOrEmpty(ResponseReasonPhrase))
-                    {
-                        ResponseProperties["owin.ReasonPhrase"] = ResponseReasonPhrase;
-                    }
-                    ResultCallback(
-                        new ResultParameters
-                        {
-                            Status = ResponseStatus,
-                            Headers = ResponseHeaders,
-                            Body = ResponseBody.Subscribe,
-                            Properties = ResponseProperties
-                        });
-                });
+                task = task.Then(() => ResultCallback());
             }
             task.Catch(
                 info =>

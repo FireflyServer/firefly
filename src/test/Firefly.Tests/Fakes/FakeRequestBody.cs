@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Firefly.Tests.Extensions;
-using Owin;
 
 namespace Firefly.Tests.Fakes
 {
