@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Firefly.Http;
+using Firefly.Utils;
 using Gate;
 using Gate.Middleware;
 using Owin;
@@ -11,19 +13,21 @@ using Owin.Builder;
 
 namespace HelloWorld
 {
+    using AppFunc = Func<IDictionary<string, object>, Task>;
     class Program
     {
         static void Main(string[] args)
         {
-            var server = new ServerFactory();
+            var server = new ServerFactory(new ConsoleTrace());
 
             var builder = new AppBuilder();
             builder
-                .UseFunc(ShowFormValues())
+                .UseFunc(ShowFormValues)
                 .UseFunc(UrlRewrite("/", "/index.html"))
                 .UseStatic()
                 .Run(new Program());
-            var app = builder.Build<AppDelegate>();
+
+            var app = builder.Build<AppFunc>();
 
             using (server.Create(app, 8080))
             {
@@ -33,61 +37,44 @@ namespace HelloWorld
             }
         }
 
-        public Task<ResultParameters> Invoke(CallParameters call)
+        public Task Invoke(IDictionary<string, object> env)
         {
-            return TaskHelpers.FromResult(new ResultParameters
+            var res = new Response(env) { ContentType = "text/plain" };
+            using (var writer = new StreamWriter(res.OutputStream))
             {
-                Status = 200,
-                Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
-                {
-                    {"Content-Type", new[] {"text/plain"}}
-                },
-                Body = output =>
-                {
-                    var bytes = Encoding.Default.GetBytes("Hello world!");
-                    output.Write(bytes, 0, bytes.Length);
-                    return TaskHelpers.Completed();
-                },
-                Properties = new Dictionary<string, object>()
-            });
+                writer.Write("Hello world!");
+            }
+            return TaskHelpers.Completed();
         }
 
-        static Func<AppDelegate, AppDelegate> ShowFormValues()
+        static AppFunc ShowFormValues(AppFunc next)
         {
-            return app => call =>
+            return env =>
             {
-                var req = new Request(call);
+                var req = new Request(env);
                 if (req.Method != "POST")
-                    return app(call);
+                {
+                    return next(env);
+                }
 
-                return TaskHelpers.FromResult(
-                    new ResultParameters
+                var res = new Response(env) { ContentType = "text/plain" };
+                return req.ReadFormAsync().Then(
+                    form =>
                     {
-                        Status = 200,
-                        Headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+                        using (var writer = new StreamWriter(res.OutputStream))
                         {
-                            {"Content-Type", new[] {"text/plain"}}
-                        },
-                        Body = output => req.ReadFormAsync()
-                            .Then(
-                                form =>
-                                {
-                                    using (var writer = new StreamWriter(output))
-                                    {
-                                        foreach (var kv in form)
-                                        {
-                                            writer.Write(kv.Key);
-                                            writer.Write(": ");
-                                            writer.WriteLine(kv.Value);
-                                        }
-                                    }
-                                }),
-                        Properties = new Dictionary<string, object>()
+                            foreach (var kv in form)
+                            {
+                                writer.Write(kv.Key);
+                                writer.Write(": ");
+                                writer.WriteLine(kv.Value);
+                            }
+                        }
                     });
             };
         }
 
-        static Func<AppDelegate, AppDelegate> UrlRewrite(string match, string replace)
+        static Func<AppFunc, AppFunc> UrlRewrite(string match, string replace)
         {
             return app => call =>
             {
@@ -96,6 +83,14 @@ namespace HelloWorld
                     req.Path = replace;
                 return app(call);
             };
+        }
+    }
+
+    class ConsoleTrace : IServerTrace
+    {
+        public void Event(TraceEventType type, TraceMessage message)
+        {
+            Console.WriteLine("{0} {1}", type, message);
         }
     }
 }

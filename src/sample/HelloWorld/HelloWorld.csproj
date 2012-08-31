@@ -37,37 +37,43 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\Cascade.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\Chunked.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\ContentLength.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\ContentType.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\MethodOverride.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\NotFound.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\OwinConstants.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\ShowExceptions.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\ShowExceptions.View.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\Static.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\StaticFiles\FileBody.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\StaticFiles\FileServer.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\StaticFiles\Mime.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\StaticFiles\TextBody.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\Utils\HttpFormatExtensions.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\Utils\RangeHeader.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\Utils\StreamWrapper.cs" />
-    <Compile Include="App_Packages\Gate.Middleware.Sources.0.14\Wilson.cs" />
-    <None Include="App_Packages\Gate.Sources.0.12\Request.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\AppBuilderInlineExtensions.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\AppBuilderMapExtensions.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\Headers.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\Mapping\MapBuilder.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\Mapping\UrlMapper.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\OwinConstants.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\Request.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\Response.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\ResponseStream.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\Utils\Net40Extensions.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\Utils\ParamDictionary.cs" />
-    <Compile Include="App_Packages\Gate.Sources.0.14\Utils\ReasonPhrases.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\Chunked.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\ContentLength.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\ContentType.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\DictionaryExtensions.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\MethodOverride.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\NotFound.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\PassiveValidator.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\RequestLogger.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\RequestTracer.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\ShowExceptions.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\ShowExceptions.View.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\Static.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\StaticFiles\FileBody.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\StaticFiles\FileServer.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\StaticFiles\Mime.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\StaticFiles\TextBody.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\Utils\FilterStream.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\Utils\HttpFormatExtensions.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\Utils\RangeHeader.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\Utils\TriggerStream.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\WebSockets\BinaryStream.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\WebSockets\OpaqueToWebSocket.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\WebSockets\WebSocketLayer.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\WebSockets\WebSocketToBinaryStream.cs" />
+    <Compile Include="App_Packages\Gate.Middleware.Sources.0.16\Wilson.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\AppBuilderInlineExtensions.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\AppBuilderMapExtensions.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\DictionaryExtensions.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\Headers.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\Mapping\MapBuilder.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\Mapping\UrlMapper.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\OwinConstants.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\Request.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\Response.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\Utils\Net40Extensions.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\Utils\ParamDictionary.cs" />
+    <Compile Include="App_Packages\Gate.Sources.0.16\Utils\ReasonPhrases.cs" />
     <Compile Include="App_Packages\TaskHelpers.Sources.0.1\TaskHelpers.cs" />
     <Compile Include="App_Packages\TaskHelpers.Sources.0.1\TaskHelpersExtensions.cs" />
     <Compile Include="Program.cs" />
@@ -81,15 +87,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Owin, Version=0.14.0.0, Culture=neutral, PublicKeyToken=f585506a2da1fef4, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\Owin.0.14\lib\net40\Owin.dll</HintPath>
-    </Reference>
     <Reference Include="Owin.Builder">
-      <HintPath>..\..\..\packages\Owin.Builder.0.3\lib\net40\Owin.Builder.dll</HintPath>
+      <HintPath>..\..\..\packages\Owin.Builder.0.4\lib\net40\Owin.Builder.dll</HintPath>
     </Reference>
     <Reference Include="Owin.Startup">
-      <HintPath>..\..\..\packages\Owin.Startup.0.3\lib\net40\Owin.Startup.dll</HintPath>
+      <HintPath>..\..\..\packages\Owin.Startup.0.4\lib\net40\Owin.Startup.dll</HintPath>
     </Reference>
     <Reference Include="System" />
   </ItemGroup>

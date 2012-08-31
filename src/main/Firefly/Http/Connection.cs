@@ -1,13 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using Firefly.Utils;
-using Owin;
 
 namespace Firefly.Http
 {
-    public class Connection
+    using AppDelegate = Func<IDictionary<string, object>, Task>;
+
+    public class Connection 
     {
         private readonly IFireflyService _services;
         private readonly AppDelegate _app;

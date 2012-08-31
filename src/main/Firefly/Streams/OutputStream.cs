@@ -36,7 +36,10 @@ namespace Firefly.Streams
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            _write(new ArraySegment<byte>(buffer, offset, count));
+            if (buffer != null)
+            {
+                _write(new ArraySegment<byte>(buffer, offset, count));
+            }
         }
 
         public override bool CanRead

@@ -7,12 +7,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Firefly.Streams;
 using Firefly.Utils;
-using Owin;
 
 // ReSharper disable AccessToModifiedClosure
 
 namespace Firefly.Http
 {
+    using AppDelegate = Func<IDictionary<string, object>, Task>;
+
     public enum ProduceEndType
     {
         SocketShutdownSend,
@@ -49,12 +50,16 @@ namespace Firefly.Http
         private string _queryString;
         private string _httpVersion;
 
-        private readonly IDictionary<string, string[]> _headers =
+        private readonly IDictionary<string, string[]> _requestHeaders =
+            new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+
+        readonly IDictionary<string, string[]> _responseHeaders =
             new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
 
         private MessageBody _messageBody;
         private bool _resultStarted;
         private bool _keepAlive;
+        IDictionary<string, object> _environment;
 
         public Frame(FrameContext context)
         {
@@ -111,7 +116,7 @@ namespace Firefly.Http
                         var resumeBody = HandleExpectContinue(callback);
                         _messageBody = MessageBody.For(
                             _httpVersion,
-                            _headers,
+                            _requestHeaders,
                             () =>
                             {
                                 try
@@ -145,7 +150,7 @@ namespace Firefly.Http
         {
             string[] expect;
             if (_httpVersion.Equals("HTTP/1.1") &&
-                _headers.TryGetValue("Expect", out expect) &&
+                _requestHeaders.TryGetValue("Expect", out expect) &&
                     (expect.FirstOrDefault() ?? "").Equals("100-continue", StringComparison.OrdinalIgnoreCase))
             {
                 return (frame, error) =>
@@ -172,24 +177,10 @@ namespace Firefly.Http
 
         private void Execute()
         {
-            _context.App(CreateCallParameters())
-                .Then(result =>
-                {
-                    _resultStarted = true;
+            _environment = CreateOwinEnvironment();
 
-                    var status = ReasonPhrases.ToStatus(result.Status, GetReasonPhrase(result.Properties));
-                    var responseHeader = CreateResponseHeader(status, result.Headers);
-                    var buffering = _context.Write(responseHeader.Item1);
-                    responseHeader.Item2.Dispose();
-
-                    var tcs = new TaskCompletionSource<Func<Stream, Task>>();
-                    if (!buffering || !_context.Flush(() => tcs.SetResult(result.Body)))
-                    {
-                        tcs.SetResult(result.Body);
-                    }
-                    return tcs.Task;
-                })
-                .Then(body => body(new OutputStream(_context.Write, _context.Flush)))
+            _context.App
+                .Invoke(_environment)
                 .Then(() => ProduceEnd(null))
                 .Catch(info =>
                     {
@@ -198,17 +189,58 @@ namespace Firefly.Http
                     });
         }
 
-        static string GetReasonPhrase(IDictionary<string, object> properties)
+        T Get<T>(string key, T defaultValue = default (T))
         {
-            string reasonPhrase = null;
-            object reasonPhraseValue;
-            if (properties != null &&
-                properties.TryGetValue("owin.ReasonPhrase", out reasonPhraseValue) &&
-                reasonPhraseValue != null)
+            object value;
+            return _environment.TryGetValue(key, out value) ? (T)value : defaultValue;
+        }
+
+        private IDictionary<string, object> CreateOwinEnvironment()
+        {
+            var env = new Dictionary<string, object>();
+            env["owin.Version"] = "1.0";
+            env["owin.RequestScheme"] = "http";
+            env["owin.RequestMethod"] = _method;
+            env["owin.RequestPath"] = _path;
+            env["owin.RequestPathBase"] = "";
+            env["owin.RequestQueryString"] = _queryString;
+            env["owin.RequestHeaders"] = _requestHeaders;
+            env["owin.RequestBody"] = new InputStream(() =>
             {
-                reasonPhrase = Convert.ToString(reasonPhraseValue);
-            }
-            return reasonPhrase;
+                var sender = new InputSender(_context.Services);
+                _messageBody.Subscribe(sender.Push);
+                return sender;
+            });
+            env["owin.ResponseHeaders"] = _responseHeaders;
+            env["owin.ResponseBody"] = new OutputStream(OnWrite, OnFlush);
+            return env;
+        }
+
+        bool OnWrite(ArraySegment<byte> arg)
+        {
+            ProduceStart();
+            return _context.Write(arg);
+        }
+
+        bool OnFlush(Action arg)
+        {
+            ProduceStart();
+            return _context.Flush(arg);
+        }
+
+        void ProduceStart()
+        {
+            if (_resultStarted) return;
+
+            _resultStarted = true;
+
+            var status = ReasonPhrases.ToStatus(
+                Get("owin.ResponseStatusCode", 200),
+                Get<string>("owin.ResponseReasonPhrase"));
+
+            var responseHeader = CreateResponseHeader(status, _responseHeaders);
+            _context.Write(responseHeader.Item1);
+            responseHeader.Item2.Dispose();
         }
 
         private void ProduceEnd(Exception ex)
@@ -441,40 +473,16 @@ namespace Firefly.Http
         private void AddRequestHeader(string name, string value)
         {
             string[] existing;
-            if (!_headers.TryGetValue(name, out existing) ||
+            if (!_requestHeaders.TryGetValue(name, out existing) ||
                 existing == null ||
                 existing.Length == 0)
             {
-                _headers[name] = new[] { value };
+                _requestHeaders[name] = new[] { value };
             }
             else
             {
-                _headers[name] = existing.Concat(new[] { value }).ToArray();
+                _requestHeaders[name] = existing.Concat(new[] { value }).ToArray();
             }
-        }
-
-        private CallParameters CreateCallParameters()
-        {
-            IDictionary<string, object> env = new Dictionary<string, object>();
-            env["owin.RequestMethod"] = _method;
-            env["owin.RequestPath"] = _path;
-            env["owin.RequestPathBase"] = "";
-            env["owin.RequestQueryString"] = _queryString;
-            //env["owin.RequestHeaders"] = _headers;
-            //env["owin.RequestBody"] = (BodyDelegate)_messageBody.Subscribe;
-            env["owin.RequestScheme"] = "http"; // TODO: pass along information about scheme, cgi headers, etc
-            env["owin.Version"] = "1.0";
-            return new CallParameters
-            {
-                Environment = env,
-                Headers = _headers,
-                Body = new InputStream(()=>
-                {
-                    var sender = new InputSender(_context.Services);
-                    _messageBody.Subscribe(sender.Push);
-                    return sender;
-                }),
-            };
         }
     }
 }
