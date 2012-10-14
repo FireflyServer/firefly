@@ -61,6 +61,12 @@ namespace Firefly.Http
         private bool _keepAlive;
         IDictionary<string, object> _environment;
 
+        CancellationTokenSource _cts = new CancellationTokenSource();
+        OutputStream _outputStream;
+        InputStream _inputStream;
+        DuplexStream _duplexStream;
+        Task _upgradeTask = TaskHelpers.Completed();
+
         public Frame(FrameContext context)
         {
             _context = context;
@@ -181,6 +187,7 @@ namespace Firefly.Http
 
             _context.App
                 .Invoke(_environment)
+                .Then(() => _upgradeTask)
                 .Then(() => ProduceEnd(null))
                 .Catch(info =>
                     {
@@ -197,22 +204,30 @@ namespace Firefly.Http
 
         private IDictionary<string, object> CreateOwinEnvironment()
         {
+            _inputStream = new InputStream(() =>
+            {
+                var sender = new InputSender(_context.Services);
+                _messageBody.Subscribe(sender.Push);
+                return sender;
+            });
+            _outputStream = new OutputStream(OnWrite, OnFlush);
+            _duplexStream = new DuplexStream(_inputStream, _outputStream);
+
             var env = new Dictionary<string, object>();
             env["owin.Version"] = "1.0";
+            env["owin.RequestProtocol"] = _httpVersion;
             env["owin.RequestScheme"] = "http";
             env["owin.RequestMethod"] = _method;
             env["owin.RequestPath"] = _path;
             env["owin.RequestPathBase"] = "";
             env["owin.RequestQueryString"] = _queryString;
             env["owin.RequestHeaders"] = _requestHeaders;
-            env["owin.RequestBody"] = new InputStream(() =>
-            {
-                var sender = new InputSender(_context.Services);
-                _messageBody.Subscribe(sender.Push);
-                return sender;
-            });
+            env["owin.RequestBody"] = _inputStream;
             env["owin.ResponseHeaders"] = _responseHeaders;
-            env["owin.ResponseBody"] = new OutputStream(OnWrite, OnFlush);
+            env["owin.ResponseBody"] = _outputStream;
+            env["owin.CallCancelled"] = _cts.Token;
+            env["opaque.Upgrade"] = (Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>)Upgrade;
+            env["opaque.Stream"] = _duplexStream;
             return env;
         }
 
@@ -226,6 +241,16 @@ namespace Firefly.Http
         {
             ProduceStart();
             return _context.Flush(arg);
+        }
+
+        void Upgrade(IDictionary<string, object> options, Func<IDictionary<string, object>, Task> callback)
+        {
+            _keepAlive = false;
+            ProduceStart();
+
+            var upgradeTaskSource = new TaskCompletionSource<object>();
+            _upgradeTask = upgradeTaskSource.Task;
+            callback(_environment).CopyResultToCompletionSource(upgradeTaskSource, null);
         }
 
         void ProduceStart()
@@ -245,6 +270,8 @@ namespace Firefly.Http
 
         private void ProduceEnd(Exception ex)
         {
+            ProduceStart();
+
             if (!_keepAlive)
             {
                 _context.End(ProduceEndType.SocketShutdownSend);

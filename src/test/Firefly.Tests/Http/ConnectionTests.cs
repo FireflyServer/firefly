@@ -1,4 +1,6 @@
 ﻿using System.Threading;
+using System.Threading.Tasks;
+using Shouldly;
 using Xunit;
 
 namespace Firefly.Tests.Http
@@ -6,7 +8,7 @@ namespace Firefly.Tests.Http
     public class ConnectionTests : ConnectionTestsBase
     {
         [Fact]
-        public void ConnectionClassCanBeTested()
+        public Task ConnectionClassCanBeTested()
         {
             App.OptionCallResultImmediately = false;
 
@@ -16,48 +18,48 @@ namespace Firefly.Tests.Http
 
             Assert.Equal(true, Socket.ReceiveAsyncPaused);
 
-            Socket.Add(
+            return Socket.AddAsync(
                 @"GET / HTTP/1.1
 Host: localhost
 Connection: close
 
-");
-
-            Assert.Equal(false, Socket.ReceiveAsyncPaused);
+").Then(() => Socket.ReceiveAsyncPaused.ShouldBe(false));
         }
 
 
         [Fact]
-        public void WithoutResponseBodyInformationServerWillSendConnectionCloseAndDisconnect()
+        public Task WithoutResponseBodyInformationServerWillSendConnectionCloseAndDisconnect()
         {
             App.OptionCallResultImmediately = true;
 
             Connection.Execute();
 
-            Socket.Add(
+            return Socket.AddAsync(
                 @"GET / HTTP/1.1
 Host: localhost
 
 GET /ignored HTTP/1.1
 Host: localhost
 
-");
-
-            Assert.True(Socket.DisconnectCalled);
-            Assert.Equal(1, App.CallCount);
-            Assert.Equal(
-                @"HTTP/1.1 200 OK
+"
+                ).Then(() =>
+                {
+                    Assert.True(Socket.DisconnectCalled);
+                    Assert.Equal(1, App.CallCount);
+                    Assert.Equal(
+                        @"HTTP/1.1 200 OK
 Connection: close
 
 ", Socket.Output);
+                });
         }
 
         [Fact]
         public void ConnectionCloseWillCauseDisconnectEvenWithResponseBodyInformation()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Connection"] = new[] {"close"};
-            App.ResponseHeaders["Content-Length"] = new[] {"0"};
+            App.ResponseHeaders["Connection"] = new[] { "close" };
+            App.ResponseHeaders["Content-Length"] = new[] { "0" };
 
             Connection.Execute();
 
@@ -84,7 +86,7 @@ Content-Length: 0
         public void ContentLengthAloneWillAllowKeepAliveToOccur()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Content-Length"] = new[] {"0"};
+            App.ResponseHeaders["Content-Length"] = new[] { "0" };
 
             Connection.Execute();
 
@@ -115,7 +117,7 @@ Content-Length: 0
         public void RequestsMayArriveIndividually()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Content-Length"] = new[] {"0"};
+            App.ResponseHeaders["Content-Length"] = new[] { "0" };
 
             Connection.Execute();
 
@@ -160,7 +162,7 @@ Content-Length: 0
         public void RequestBodyContentLengthAllowsBackToBackPosts()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Content-Length"] = new[] {"0"};
+            App.ResponseHeaders["Content-Length"] = new[] { "0" };
 
             Connection.Execute();
 
@@ -202,7 +204,7 @@ Content-Length: 0
         public void RequestBodyChunkedAlsoAllowsBackToBackPosts()
         {
             App.OptionCallResultImmediately = true;
-            App.ResponseHeaders["Content-Length"] = new[] {"0"};
+            App.ResponseHeaders["Content-Length"] = new[] { "0" };
 
             Connection.Execute();
 

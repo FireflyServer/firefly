@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Firefly.Utils;
+using Shouldly;
 
 namespace Firefly.Tests.Fakes
 {
@@ -12,6 +15,7 @@ namespace Firefly.Tests.Fakes
         private ArraySegment<byte> _output = new ArraySegment<byte>(new byte[0]);
         private readonly object _receiveLock = new object();
         private readonly object _sendLock = new object();
+        TaskCompletionSource<object> _addTaskCompletionSource;
 
         public FakeSocket()
         {
@@ -64,6 +68,28 @@ namespace Firefly.Tests.Fakes
             if (callback != null)
             {
                 callback();
+            }
+            TryAddAsyncComplete();
+        }
+
+        public Task AddAsync(string text)
+        {
+            _addTaskCompletionSource.ShouldBe(null);
+            _addTaskCompletionSource = new TaskCompletionSource<object>();
+            var task = _addTaskCompletionSource.Task;
+            Add(text);
+            return task;
+        }
+
+        void TryAddAsyncComplete()
+        {
+            if (_input.Count == 0 || ShutdownReceiveCalled)
+            {
+                var taskCompletionSource = Interlocked.Exchange(ref _addTaskCompletionSource, null);
+                if (taskCompletionSource != null)
+                {
+                    taskCompletionSource.SetResult(null);
+                }
             }
         }
 
@@ -122,33 +148,47 @@ namespace Firefly.Tests.Fakes
 
         public int Receive(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode)
         {
-            lock (_receiveLock)
+            try
             {
-                if (ReceiveAsyncPaused)
+                lock (_receiveLock)
                 {
-                    throw new InvalidOperationException(
-                        "FakeSocket.Receive cannot be called when ReceiveCalled is true");
-                }
+                    if (ReceiveAsyncPaused)
+                    {
+                        throw new InvalidOperationException(
+                            "FakeSocket.Receive cannot be called when ReceiveCalled is true");
+                    }
 
-                var bytesTransferred = TakeInput(new ArraySegment<byte>(buffer, offset, size));
-                errorCode = bytesTransferred == 0 ? SocketError.WouldBlock : SocketError.Success;
-                return bytesTransferred;
+                    var bytesTransferred = TakeInput(new ArraySegment<byte>(buffer, offset, size));
+                    errorCode = bytesTransferred == 0 ? SocketError.WouldBlock : SocketError.Success;
+                    return bytesTransferred;
+                }
+            }
+            finally
+            {
+                TryAddAsyncComplete();
             }
         }
 
         public bool ReceiveAsync(ISocketEvent socketEvent)
         {
-            lock (_receiveLock)
+            try
             {
-                if (ReceiveAsyncPaused)
+                lock (_receiveLock)
                 {
-                    throw new InvalidOperationException(
-                        "FakeSocket.Receive cannot be called when ReceiveCalled is true");
-                }
+                    if (ReceiveAsyncPaused)
+                    {
+                        throw new InvalidOperationException(
+                            "FakeSocket.Receive cannot be called when ReceiveCalled is true");
+                    }
 
-                ReceiveAsyncPaused = true;
-                ReceiveAsyncArgs = socketEvent;
-                return TryReceiveAsync() == null;
+                    ReceiveAsyncPaused = true;
+                    ReceiveAsyncArgs = socketEvent;
+                    return TryReceiveAsync() == null;
+                }
+            }
+            finally
+            {
+                TryAddAsyncComplete();
             }
         }
 
@@ -181,7 +221,7 @@ namespace Firefly.Tests.Fakes
             lock (_sendLock)
             {
                 var buffers = socketEvent.BufferList ??
-                    new[] {new ArraySegment<byte>(socketEvent.Buffer, socketEvent.Offset, socketEvent.Count)};
+                    new[] { new ArraySegment<byte>(socketEvent.Buffer, socketEvent.Offset, socketEvent.Count) };
 
                 var byteTransfered =
                     GiveOutput(new ArraySegment<byte>(socketEvent.Buffer, socketEvent.Offset, socketEvent.Count));
@@ -198,16 +238,16 @@ namespace Firefly.Tests.Fakes
         {
             switch (how)
             {
-            case SocketShutdown.Send:
-                ShutdownSendCalled = true;
-                break;
-            case SocketShutdown.Receive:
-                ShutdownReceiveCalled = true;
-                break;
-            case SocketShutdown.Both:
-                ShutdownSendCalled = true;
-                ShutdownReceiveCalled = true;
-                break;
+                case SocketShutdown.Send:
+                    ShutdownSendCalled = true;
+                    break;
+                case SocketShutdown.Receive:
+                    ShutdownReceiveCalled = true;
+                    break;
+                case SocketShutdown.Both:
+                    ShutdownSendCalled = true;
+                    ShutdownReceiveCalled = true;
+                    break;
             }
         }
 

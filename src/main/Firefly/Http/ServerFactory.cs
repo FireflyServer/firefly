@@ -13,7 +13,7 @@ namespace Firefly.Http
 {
     using AppDelegate = Func<IDictionary<string, object>, Task>;
 
-    public class ServerFactory
+    public class ServerFactory 
     {
         private readonly IFireflyService _services;
 

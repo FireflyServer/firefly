@@ -45,6 +45,8 @@
     <Compile Include="App_Packages\TaskHelpers.Sources.0.1\TaskHelpersExtensions.cs" />
     <Compile Include="FireflyService.cs" />
     <Compile Include="Http\Baton.cs" />
+    <Compile Include="Streams\DuplexStream.cs" />
+    <Compile Include="Owin\ServerFactory.cs" />
     <Compile Include="Streams\OutputStream.cs" />
     <Compile Include="Streams\InputStream.cs" />
     <Compile Include="Http\MessageBody.cs" />
@@ -71,6 +73,7 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Firefly.nuspec" />
     <None Include="Firefly.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

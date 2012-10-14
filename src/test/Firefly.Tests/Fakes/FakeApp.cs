@@ -24,7 +24,6 @@ namespace Firefly.Tests.Fakes
         public int CallCount { get; set; }
         public IDictionary<string, object> Env { get; set; }
         public Action ResultCallback { get; set; }
-        public Action<Exception> FaultCallback { get; set; }
 
 
         public IDictionary<string, string[]> RequestHeaders { get; set; }
@@ -52,7 +51,7 @@ namespace Firefly.Tests.Fakes
                 env["owin.ResponseStatusCode"] = ResponseStatus;
                 env["owin.ResponseReasonPhrase"] = ResponseReasonPhrase;
                 var headers = (IDictionary<string, string[]>)env["owin.ResponseHeaders"];
-                foreach(var kv in ResponseHeaders)
+                foreach (var kv in ResponseHeaders)
                 {
                     headers[kv.Key] = kv.Value;
                 }
@@ -61,7 +60,6 @@ namespace Firefly.Tests.Fakes
                     .Subscribe(output)
                     .CopyResultToCompletionSource(tcs, null);
             };
-            FaultCallback = tcs.SetException;
 
             RequestHeaders = (IDictionary<string, string[]>)env["owin.RequestHeaders"];
             RequestBody = new FakeRequestBody((Stream)env["owin.RequestBody"]);
@@ -76,12 +74,7 @@ namespace Firefly.Tests.Fakes
             {
                 task = task.Then(() => ResultCallback());
             }
-            task.Catch(
-                info =>
-                {
-                    FaultCallback(info.Exception);
-                    return info.Handled();
-                });
+            task.CopyResultToCompletionSource(tcs, null);
             return tcs.Task;
         }
 
