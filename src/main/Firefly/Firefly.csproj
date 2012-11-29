@@ -46,7 +46,7 @@
     <Compile Include="FireflyService.cs" />
     <Compile Include="Http\Baton.cs" />
     <Compile Include="Streams\DuplexStream.cs" />
-    <Compile Include="Owin\ServerFactory.cs" />
+    <Compile Include="Owin\OwinServerFactoryAttribute.cs" />
     <Compile Include="Streams\OutputStream.cs" />
     <Compile Include="Streams\InputStream.cs" />
     <Compile Include="Http\MessageBody.cs" />

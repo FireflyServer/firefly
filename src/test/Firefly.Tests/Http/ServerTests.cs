@@ -154,7 +154,7 @@ Host: localhost
 //                    responseStarted.TrySetResult(true);
 //                });
 
-//            using (new ServerFactory().Create(app, 56567))
+//            using (new OwinServerFactoryAttribute().Create(app, 56567))
 //            {
 //                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
 //                socket.Connect("localhost", 56567);
@@ -211,7 +211,7 @@ Host: localhost
 //                    (write, flush, end, cancel) => end(null));
 //            };
 
-//            using (new ServerFactory().Create(app, 56565))
+//            using (new OwinServerFactoryAttribute().Create(app, 56565))
 //            {
 //                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
 //                socket.Connect("localhost", 56565);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -39,14 +40,15 @@ namespace Firefly.Http
 
         public IDisposable Create(AppDelegate app, int port, string hostname)
         {
-            return Create(app, new DnsEndPoint(hostname, port, AddressFamily.InterNetwork));
+            var ipAddress = Dns.GetHostAddresses(hostname).First();
+            return Create(app, new IPEndPoint(ipAddress, port));
         }
 
         public IDisposable Create(AppDelegate app, EndPoint endpoint)
         {
             _services.Trace.Event(TraceEventType.Start, TraceMessage.ServerFactory);
 
-            var listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
+            var listenSocket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.IP);
             listenSocket.Bind(endpoint);
             listenSocket.Listen(-1);
 
