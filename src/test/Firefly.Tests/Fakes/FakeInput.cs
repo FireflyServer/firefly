@@ -18,7 +18,7 @@ namespace Firefly.Tests.Fakes
         }
 
         public Baton Baton { get; set; }
-        public Func<Baton, Action, Action<Exception>, bool> Consume { get; set; }
+        public Func<Baton, Action<Exception>, bool> Consume { get; set; }
 
         public bool Paused { get; set; }
         public ManualResetEvent WaitHandle { get; set; }
@@ -68,20 +68,27 @@ namespace Firefly.Tests.Fakes
             WaitHandle.Reset();
 
             Paused = true;
-            if (!Consume(Baton, Resume, Error))
+            if (!Consume(Baton, Resume))
             {
                 Paused = false;
             }
         }
 
-        public void Resume()
+        public void Resume(Exception ex)
         {
-            if (!Paused)
+            if (ex != null)
             {
-                throw new InvalidOperationException("FakeInput.Resume cannot be called when Paused is false");
+                Error(ex);
             }
-            Paused = false;
-            WaitHandle.Set();
+            else
+            {
+                if (!Paused)
+                {
+                    throw new InvalidOperationException("FakeInput.Resume cannot be called when Paused is false");
+                }
+                Paused = false;
+                WaitHandle.Set();
+            }
         }
 
         public void Error(Exception ex)

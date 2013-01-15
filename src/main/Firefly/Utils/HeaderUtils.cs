@@ -6,15 +6,15 @@ namespace Firefly.Utils
 {
     static class HeaderUtils
     {
-        public static bool TryGet(this IDictionary<string, IEnumerable<string>> headers, string name, out string value)
+        public static bool TryGet(this IDictionary<string, string[]> headers, string name, out string value)
         {
-            IEnumerable<string> values;
+            string[] values;
             if (!headers.TryGetValue(name, out values) || values == null)
             {
                 value = null;
                 return false;
             }
-            var count = values.Count();
+            var count = values.Length;
             if (count == 0)
             {
                 value = null;
@@ -22,10 +22,10 @@ namespace Firefly.Utils
             }
             if (count == 1)
             {
-                value = values.Single();
+                value = values[0];
                 return true;
             }
-            value = String.Join(",", values.ToString());
+            value = String.Join(",", values);
             return true;
         }
     }

@@ -14,11 +14,8 @@
     <!--<releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
     <copyright>Copyright 2012</copyright>
     <tags>Tag1 Tag2</tags>-->
-    <dependencies>
-      <dependency id="Owin" version="0.7.0"/>
-    </dependencies>
   </metadata>
   <files>
-    <file src="Firefly.dll" target="lib/net40" />  
+    <file src="Firefly.dll" target="lib" />  
   </files>
 </package>

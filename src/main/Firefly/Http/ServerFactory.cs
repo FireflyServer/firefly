@@ -1,16 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using Firefly.Utils;
-using Owin;
 
 // ReSharper disable AccessToModifiedClosure
 
 namespace Firefly.Http
 {
-    public class ServerFactory
+    using AppDelegate = Func<IDictionary<string, object>, Task>;
+
+    public class ServerFactory 
     {
         private readonly IFireflyService _services;
 
