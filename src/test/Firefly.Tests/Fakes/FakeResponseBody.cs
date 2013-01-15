@@ -1,6 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+using Firefly.Tests.Extensions;
 
 namespace Firefly.Tests.Fakes
 {
@@ -12,14 +15,9 @@ namespace Firefly.Tests.Fakes
             Text = "";
         }
 
-        public void Subscribe(
-            Func<ArraySegment<byte>, bool> write,
-            Func<Action, bool> flush,
-            Action<Exception> end,
-            CancellationToken cancellationtoken)
+        public Task Subscribe(Stream output)
         {
-            write(Bytes);
-            end(null);
+            return output.WriteAsync(Bytes.Array, Bytes.Offset, Bytes.Count, CancellationToken.None);
         }
 
         public ArraySegment<byte> Bytes { get; set; }

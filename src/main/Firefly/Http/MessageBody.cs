@@ -5,42 +5,36 @@ using Firefly.Utils;
 
 namespace Firefly.Http
 {
+    public static class DelegateExtensions
+    {
+        public static void InvokeNoThrow(this Action d)
+        {
+            try { d.Invoke(); }
+            catch { }
+        }
+        public static void InvokeNoThrow<T>(this Action<T> d, T arg1)
+        {
+            try { d.Invoke(arg1); }
+            catch { }
+        }
+    }
+
     public abstract class MessageBody
     {
         Subscriber _subscriber;
         private Action _continuation;
-        private bool _cancel;
 
         public bool LocalIntakeFin { get; set; }
         public bool RequestKeepAlive { get; protected set; }
-
-        class Subscriber
-        {
-            public Subscriber(
-                Func<ArraySegment<byte>, bool> write,
-                Func<Action, bool> flush,
-                Action<Exception> end,
-                CancellationToken cancellationToken)
-            {
-                Write = write;
-                Flush = flush;
-                End = end;
-                CancellationToken = cancellationToken;
-            }
-
-            public Func<ArraySegment<byte>, bool> Write { get; set; }
-            public Func<Action, bool> Flush { get; set; }
-            public Action<Exception> End { get; set; }
-            public CancellationToken CancellationToken { get; set; }
-        }
 
         protected MessageBody(Action continuation)
         {
             _continuation = continuation;
         }
 
+
         public static MessageBody For(
-            string httpVersion, IDictionary<string, IEnumerable<string>> headers, Action continuation)
+            string httpVersion, IDictionary<string, string[]> headers, Action continuation)
         {
             // see also http://tools.ietf.org/html/rfc2616#section-4.4
 
@@ -72,6 +66,68 @@ namespace Firefly.Http
             return new ForRemainingData(continuation);
         }
 
+        class Subscriber
+        {
+            readonly InputSender.TransferDelegate _transfer;
+            Action<Exception> _callback;
+
+            public Subscriber(InputSender.TransferDelegate transfer)
+            {
+                _transfer = transfer;
+            }
+
+            public bool End(Action<Exception> callback)
+            {
+                var result1 = _transfer.Invoke(
+                    new InputSender.Message { Fin = true },
+                    result2 => callback(result2.Message.Error));
+                return result1.Pending;
+            }
+
+            public bool Write(ArraySegment<byte> data, Action<Exception> callback)
+            {
+                _callback = callback;
+                return Transfer(data);
+            }
+
+            bool Transfer(ArraySegment<byte> data)
+            {
+                while (data.Count != 0)
+                {
+                    var result = _transfer(new InputSender.Message { Buffer = data }, TransferCallback);
+                    if (result.Pending)
+                        return true;
+
+                    if (result.Message.Error != null)
+                    {
+                        _callback.InvokeNoThrow(result.Message.Error);
+                    }
+                    data = result.Message.Buffer;
+                }
+                return false;
+            }
+
+            void TransferCallback(InputSender.Result result)
+            {
+                if (result.Message.Error != null)
+                {
+                    _callback.InvokeNoThrow(result.Message.Error);
+                    return;
+                }
+                try
+                {
+                    if (!Transfer(result.Message.Buffer))
+                    {
+                        _callback.InvokeNoThrow(null);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _callback.InvokeNoThrow(ex);
+                }
+            }
+        }
+
         public bool Drain(Action continuation)
         {
             if (_subscriber != null)
@@ -79,42 +135,33 @@ namespace Firefly.Http
                 return false;
             }
 
-            Subscribe(
-                _ => false,
-                _ => false,
-                _ => continuation(),
-                CancellationToken.None);
+            Subscribe((message, callback) =>
+            {
+                if (message.Fin || message.Error != null)
+                {
+                    continuation.Invoke();
+                    return new InputSender.Result { Message = new InputSender.Message { State = message.State } };
+                }
 
+                return new InputSender.Result
+                {
+                    Message = new InputSender.Message
+                    {
+                        State = message.State,
+                        Buffer = new ArraySegment<byte>(message.Buffer.Array, message.Buffer.Offset + message.Buffer.Count, 0)
+                    }
+                };
+            });
             return true;
         }
 
 
-        public void Subscribe(
-            Func<ArraySegment<byte>, bool> write,
-            Func<Action, bool> flush,
-            Action<Exception> end,
-            CancellationToken cancellationToken)
+        public void Subscribe(InputSender.TransferDelegate transfer)
         {
-            var subscriber = new Subscriber(write, flush, end, cancellationToken);
+            var subscriber = new Subscriber(transfer);
             if (Interlocked.CompareExchange(ref _subscriber, subscriber, null) != null)
             {
-                try
-                {
-                    end(new InvalidOperationException("MessageBody.Subscribe may only be called once"));
-                }
-                catch
-                {
-                }
-                return;
-            }
-
-            if (_subscriber.CancellationToken.IsCancellationRequested)
-            {
-                _cancel = true;
-            }
-            else
-            {
-                _subscriber.CancellationToken.Register(() => _cancel = true);
+                throw new InvalidOperationException("MessageBody.Subscribe may only be called once");
             }
 
             var continuation = Interlocked.Exchange(ref _continuation, null);
@@ -124,7 +171,7 @@ namespace Firefly.Http
             }
         }
 
-        public abstract bool Consume(Baton baton, Action callback, Action<Exception> fault);
+        public abstract bool Consume(Baton baton, Action<Exception> callback);
 
 
         class ForRemainingData : MessageBody
@@ -134,17 +181,16 @@ namespace Firefly.Http
             {
             }
 
-            public override bool Consume(Baton baton, Action callback, Action<Exception> fault)
+            public override bool Consume(Baton baton, Action<Exception> callback)
             {
                 if (baton.RemoteIntakeFin)
                 {
                     LocalIntakeFin = true;
-                    _subscriber.End(null);
-                    return false;
+                    return _subscriber.End(callback);
                 }
 
                 var consumed = baton.Take(baton.Buffer.Count);
-                return _subscriber.Write(consumed) && _subscriber.Flush(callback);
+                return _subscriber.Write(consumed, callback);
             }
         }
 
@@ -161,7 +207,7 @@ namespace Firefly.Http
                 _neededLength = _contentLength;
             }
 
-            public override bool Consume(Baton baton, Action callback, Action<Exception> fault)
+            public override bool Consume(Baton baton, Action<Exception> callback)
             {
                 var consumeLength = Math.Min(_neededLength, baton.Buffer.Count);
                 _neededLength -= consumeLength;
@@ -171,27 +217,33 @@ namespace Firefly.Http
                 if (_neededLength != 0)
                 {
                     // TODO: if check baton.Complete==true && neededlength != 0 then remote socket closed early
-                    return _subscriber.Write(consumed) && _subscriber.Flush(callback);
+                    return _subscriber.Write(consumed, callback);
                 }
 
                 LocalIntakeFin = true;
 
-                if (consumed.Count != 0)
+                if (consumed.Count == 0)
                 {
-                    if (_subscriber.Write(consumed) &&
-                        _subscriber.Flush(
-                            () =>
-                            {
-                                _subscriber.End(null);
-                                callback();
-                            }))
-                    {
-                        return true;
-                    }
+                    return _subscriber.End(callback);
                 }
 
-                _subscriber.End(null);
-                return false;
+                if (_subscriber.Write(consumed, ex =>
+                        {
+                            if (ex != null)
+                            {
+                                callback(ex);
+                            }
+                            else
+                            {
+                                if (!_subscriber.End(callback))
+                                    callback(null);
+                            }
+                        }))
+                {
+                    return true;
+                }
+
+                return _subscriber.End(callback);
             }
         }
 
@@ -220,68 +272,67 @@ namespace Firefly.Http
                 RequestKeepAlive = keepAlive;
             }
 
-            public override bool Consume(Baton baton, Action callback, Action<Exception> fault)
+            public override bool Consume(Baton baton, Action<Exception> callback)
             {
-                for (;;)
+                for (; ; )
                 {
                     switch (_mode)
                     {
-                    case Mode.ChunkSizeLine:
-                        var chunkSize = 0;
-                        if (!TakeChunkedLine(baton, ref chunkSize))
-                        {
-                            return false;
-                        }
+                        case Mode.ChunkSizeLine:
+                            var chunkSize = 0;
+                            if (!TakeChunkedLine(baton, ref chunkSize))
+                            {
+                                return false;
+                            }
 
-                        _neededLength = chunkSize;
-                        if (chunkSize == 0)
-                        {
-                            _mode = Mode.Complete;
-                            LocalIntakeFin = true;
-                            _subscriber.End(null);
-                            return false;
-                        }
-                        _mode = Mode.ChunkData;
-                        break;
-
-                    case Mode.ChunkData:
-                        if (_neededLength == 0)
-                        {
-                            _mode = Mode.ChunkDataCRLF;
+                            _neededLength = chunkSize;
+                            if (chunkSize == 0)
+                            {
+                                _mode = Mode.Complete;
+                                LocalIntakeFin = true;
+                                _subscriber.End(null);
+                                return false;
+                            }
+                            _mode = Mode.ChunkData;
                             break;
-                        }
-                        if (baton.Buffer.Count == 0)
-                        {
-                            return false;
-                        }
 
-                        var consumeLength = Math.Min(_neededLength, baton.Buffer.Count);
-                        _neededLength -= consumeLength;
-                        var consumed = baton.Take(consumeLength);
+                        case Mode.ChunkData:
+                            if (_neededLength == 0)
+                            {
+                                _mode = Mode.ChunkDataCRLF;
+                                break;
+                            }
+                            if (baton.Buffer.Count == 0)
+                            {
+                                return false;
+                            }
 
-                        if (_subscriber.Write(consumed) &&
-                            _subscriber.Flush(callback))
-                        {
-                            return true;
-                        }
-                        break;
+                            var consumeLength = Math.Min(_neededLength, baton.Buffer.Count);
+                            _neededLength -= consumeLength;
+                            var consumed = baton.Take(consumeLength);
 
-                    case Mode.ChunkDataCRLF:
-                        if (baton.Buffer.Count < 2)
-                        {
-                            return false;
-                        }
-                        var crlf = baton.Take(2);
-                        if (crlf.Array[crlf.Offset] != '\r' ||
-                            crlf.Array[crlf.Offset + 1] != '\n')
-                        {
+                            if (_subscriber.Write(consumed, callback))
+                            {
+                                return true;
+                            }
+                            break;
+
+                        case Mode.ChunkDataCRLF:
+                            if (baton.Buffer.Count < 2)
+                            {
+                                return false;
+                            }
+                            var crlf = baton.Take(2);
+                            if (crlf.Array[crlf.Offset] != '\r' ||
+                                crlf.Array[crlf.Offset + 1] != '\n')
+                            {
+                                throw new NotImplementedException("INVALID REQUEST FORMAT");
+                            }
+                            _mode = Mode.ChunkSizeLine;
+                            break;
+
+                        default:
                             throw new NotImplementedException("INVALID REQUEST FORMAT");
-                        }
-                        _mode = Mode.ChunkSizeLine;
-                        break;
-
-                    default:
-                        throw new NotImplementedException("INVALID REQUEST FORMAT");
                     }
                 }
             }

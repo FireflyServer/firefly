@@ -1,17 +1,13 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloWorld", "src\sample\HelloWorld\HelloWorld.csproj", "{2087B5A3-5A02-4F6C-AB54-BDB96D32C291}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Firefly", "src\main\Firefly\Firefly.csproj", "{CA805DDB-E41D-42A0-AF7E-2388E2670663}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Firefly.Tests", "src\test\Firefly.Tests\Firefly.Tests.csproj", "{043474E8-309A-42EB-904B-F570EA10E82D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sandbox", "src\sample\Sandbox\Sandbox.csproj", "{4A484DEF-B640-468C-A7FB-B8602D1180A8}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Profile", "Profile", "{FD1D2A43-12D2-42B7-8640-1CBE8B094A77}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile.Server", "src\test\Profile.Server\Profile.Server.csproj", "{1332C39F-C2F1-4431-AF9E-1315C322E51A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile.HeaderParser", "src\test\Profile.HeaderParser\Profile.HeaderParser.csproj", "{63258335-EC44-4497-9016-167BDB8D0A53}"
 EndProject
@@ -74,26 +70,6 @@ Global
 		{043474E8-309A-42EB-904B-F570EA10E82D}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{043474E8-309A-42EB-904B-F570EA10E82D}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{043474E8-309A-42EB-904B-F570EA10E82D}.Release|x86.ActiveCfg = Release|Any CPU
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Debug|Mixed Platforms.Build.0 = Debug|x86
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Debug|x86.ActiveCfg = Debug|x86
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Debug|x86.Build.0 = Debug|x86
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Release|Any CPU.ActiveCfg = Release|x86
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Release|Mixed Platforms.Build.0 = Release|x86
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Release|x86.ActiveCfg = Release|x86
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8}.Release|x86.Build.0 = Release|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Debug|Mixed Platforms.Build.0 = Debug|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Debug|x86.ActiveCfg = Debug|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Debug|x86.Build.0 = Debug|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Release|Any CPU.ActiveCfg = Release|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Release|Mixed Platforms.Build.0 = Release|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Release|x86.ActiveCfg = Release|x86
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A}.Release|x86.Build.0 = Release|x86
 		{63258335-EC44-4497-9016-167BDB8D0A53}.Debug|Any CPU.ActiveCfg = Debug|x86
 		{63258335-EC44-4497-9016-167BDB8D0A53}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
 		{63258335-EC44-4497-9016-167BDB8D0A53}.Debug|Mixed Platforms.Build.0 = Debug|x86
@@ -119,9 +95,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{4A484DEF-B640-468C-A7FB-B8602D1180A8} = {0EFCCCA4-4234-4A7A-8B6A-F4BDD12C226D}
 		{2087B5A3-5A02-4F6C-AB54-BDB96D32C291} = {0EFCCCA4-4234-4A7A-8B6A-F4BDD12C226D}
-		{1332C39F-C2F1-4431-AF9E-1315C322E51A} = {FD1D2A43-12D2-42B7-8640-1CBE8B094A77}
 		{63258335-EC44-4497-9016-167BDB8D0A53} = {FD1D2A43-12D2-42B7-8640-1CBE8B094A77}
 		{D09DCA54-3534-4E35-8761-F8DA1FF7FBC9} = {FD1D2A43-12D2-42B7-8640-1CBE8B094A77}
 		{87AEA17F-9DF3-4702-ABFC-9FD3FE5562DD} = {AF2D9CC0-CBC1-47F3-847E-4ED35F139FAE}

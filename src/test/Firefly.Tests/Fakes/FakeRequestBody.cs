@@ -2,7 +2,8 @@
 using System.IO;
 using System.Text;
 using System.Threading;
-using Owin;
+using System.Threading.Tasks;
+using Firefly.Tests.Extensions;
 
 namespace Firefly.Tests.Fakes
 {
@@ -10,14 +11,14 @@ namespace Firefly.Tests.Fakes
     {
         private int _subscribeCount;
 
-        public FakeRequestBody(BodyDelegate body)
+        public FakeRequestBody(Stream body)
         {
             Body = body;
             MemoryStream = new MemoryStream();
             Encoding = Encoding.UTF8;
         }
 
-        public BodyDelegate Body { get; set; }
+        public Stream Body { get; set; }
 
         public int SubscribeCount
         {
@@ -46,28 +47,23 @@ namespace Firefly.Tests.Fakes
             }
         }
 
-        public void Subscribe(
-            Func<ArraySegment<byte>, bool> write,
-            Func<Action, bool> flush,
-            Action<Exception> end,
+        public Task Subscribe(
             CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _subscribeCount);
             cancellationToken.Register(() => Canceled = true);
-            Body(
-                data =>
-                {
-                    MemoryStream.Write(data.Array, data.Offset, data.Count);
-                    return write(data);
-                },
-                flush,
-                ex =>
-                {
-                    LastException = ex;
-                    Ended = true;
-                    end(ex);
-                },
-                cancellationToken);
+
+            return Body.CopyToAsync(MemoryStream, 4096, cancellationToken)
+                .Then(
+                    () =>
+                    {
+                        Ended = true;
+                    })
+                    .Catch(info=>
+                    {
+                        LastException = info.Exception;
+                        return info.Throw();
+                    });
         }
     }
 }

@@ -27,7 +27,7 @@ namespace Firefly.Tests.Http
                     Flush = Output.Flush,
                     End = Output.End,
                 });
-            Input.Consume = (baton, callback, fault) => Frame.Consume(baton, _ => callback(), fault);
+            Input.Consume = (baton, callback) => Frame.Consume(baton, (frame, ex) => callback(ex));
         }
 
         protected void AssertInputState(bool paused, bool localIntakeFin, string text)

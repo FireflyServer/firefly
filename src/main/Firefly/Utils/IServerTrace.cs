@@ -20,7 +20,8 @@ namespace Firefly.Utils
         ConnectionSendSocketError,
 
         // TraceEventType.Error
-        ServerFactoryAcceptSocketError
+        ServerFactoryAcceptSocketError,
+        InputSenderCallbackError
     }
 
     public interface IServerTrace

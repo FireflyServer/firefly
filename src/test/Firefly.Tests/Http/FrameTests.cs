@@ -7,7 +7,8 @@ namespace Firefly.Tests.Http
         [Fact]
         public void FakeAppCanReturnResults()
         {
-            App.ResponseStatus = "200 Super";
+            App.ResponseStatus = 200;
+            App.ResponseReasonPhrase = "Super";
             App.ResponseHeaders["x-header"] = new[] {"value"};
             App.ResponseBody.Text = "This is the response";
 
@@ -47,7 +48,8 @@ Host:localhost
         [Fact]
         public void CompletedRequestGeneratesResponse()
         {
-            App.ResponseStatus = "418 I'm a teapot";
+            App.ResponseStatus = 418;
+            App.ResponseReasonPhrase = "I'm a teapot";
             App.ResponseHeaders["Connection"] = new[] {"close"};
             Input.Add(
                 @"GET /hello/world?x=y HTTP/1.1
