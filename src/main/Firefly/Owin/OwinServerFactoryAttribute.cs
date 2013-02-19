@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using Firefly.Owin;
 using Firefly.Utils;
@@ -35,10 +37,14 @@ namespace Firefly.Owin
                     if (hostname == null || hostname == "*" || hostname == "+")
                     {
                         created.Add(factory.Create(app, port));
+
+                        Kickstart(new IPEndPoint(IPAddress.Loopback,port));
                     }
                     else
                     {
                         created.Add(factory.Create(app, port, hostname));
+
+                        Kickstart(new DnsEndPoint(hostname, port));
                     }
                 }
             }
@@ -50,6 +56,13 @@ namespace Firefly.Owin
                         disposable.Dispose();
                     }
                 });
+        }
+
+        private static void Kickstart(EndPoint endPoint)
+        {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
+            socket.Connect(endPoint);
+            socket.Close();
         }
 
         static IList<IDictionary<string, object>> Addresses(IDictionary<string, object> properties)
