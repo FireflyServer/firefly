@@ -10,7 +10,7 @@ namespace Firefly.Http
 {
     using AppDelegate = Func<IDictionary<string, object>, Task>;
 
-    public class Connection 
+    public class Connection
     {
         private readonly IFireflyService _services;
         private readonly AppDelegate _app;
@@ -48,9 +48,9 @@ namespace Firefly.Http
             _receiveSocketEvent.SetBuffer(_services.Memory.Empty, 0, 0);
 
 
-            _frameConsumeCallback = (frame,error) =>
+            _frameConsumeCallback = (frame, error) =>
             {
-                if (error!=null)
+                if (error != null)
                 {
                     _fault(error);
                 }
@@ -85,6 +85,7 @@ namespace Firefly.Http
                     new FrameContext
                     {
                         Services = _services,
+                        Socket = _socket,
                         App = _app,
                         Write = _socketSender.Write,
                         Flush = _socketSender.Flush,

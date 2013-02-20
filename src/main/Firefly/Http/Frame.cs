@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,6 +27,7 @@ namespace Firefly.Http
     {
         public IFireflyService Services;
         public AppDelegate App;
+        public ISocket Socket;
         public Func<ArraySegment<byte>, bool> Write;
         public Func<Action, bool> Flush;
         public Action<ProduceEndType> End;
@@ -213,6 +216,34 @@ namespace Firefly.Http
             _outputStream = new OutputStream(OnWrite, OnFlush);
             _duplexStream = new DuplexStream(_inputStream, _outputStream);
 
+            var remoteIpAddress = "127.0.0.1";
+            var remotePort = "0";
+            var localIpAddress = "127.0.0.1";
+            var localPort = "80";
+            var isLocal = false;
+
+            if (_context.Socket != null)
+            {
+                var remoteEndPoint = _context.Socket.RemoteEndPoint as IPEndPoint;
+                if (remoteEndPoint != null)
+                {
+                    remoteIpAddress = remoteEndPoint.Address.ToString();
+                    remotePort = remoteEndPoint.Port.ToString(CultureInfo.InvariantCulture);
+                }
+
+                var localEndPoint = _context.Socket.LocalEndPoint as IPEndPoint;
+                if (localEndPoint != null)
+                {
+                    localIpAddress = localEndPoint.Address.ToString();
+                    localPort = localEndPoint.Port.ToString(CultureInfo.InvariantCulture);
+                }
+
+                if (remoteEndPoint != null && localEndPoint != null)
+                {
+                    isLocal = Equals(remoteEndPoint.Address, localEndPoint.Address);
+                }
+            }
+
             var env = new Dictionary<string, object>();
             env["owin.Version"] = "1.0";
             env["owin.RequestProtocol"] = _httpVersion;
@@ -228,6 +259,14 @@ namespace Firefly.Http
             env["owin.CallCancelled"] = _cts.Token;
             env["opaque.Upgrade"] = (Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>)Upgrade;
             env["opaque.Stream"] = _duplexStream;
+<<<<<<< HEAD
+=======
+            env["server.RemoteIpAddress"] = remoteIpAddress;
+            env["server.RemotePort"] = remotePort;
+            env["server.LocalIpAddress"] = localIpAddress;
+            env["server.LocalPort"] = localPort;
+            env["server.IsLocal"] = isLocal;
+>>>>>>> Adding env keys for local/remote addr
             return env;
         }
 

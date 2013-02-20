@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Firefly.Utils
@@ -9,6 +10,8 @@ namespace Firefly.Utils
         bool Blocking { get; set; }
         bool NoDelay { get; set; }
         bool Connected { get; }
+        EndPoint RemoteEndPoint { get; }
+        EndPoint LocalEndPoint { get; }
 
         int Receive(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode);
         bool ReceiveAsync(ISocketEvent socketEvent);

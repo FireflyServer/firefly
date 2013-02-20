@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -144,6 +145,22 @@ namespace Firefly.Tests.Fakes
         public bool Blocking { get; set; }
         public bool NoDelay { get; set; }
         public bool Connected { get; private set; }
+
+        public EndPoint RemoteEndPoint
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public EndPoint LocalEndPoint
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
 
 
         public int Receive(byte[] buffer, int offset, int size, SocketFlags socketFlags, out SocketError errorCode)
