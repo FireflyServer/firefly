@@ -259,14 +259,11 @@ namespace Firefly.Http
             env["owin.CallCancelled"] = _cts.Token;
             env["opaque.Upgrade"] = (Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>)Upgrade;
             env["opaque.Stream"] = _duplexStream;
-<<<<<<< HEAD
-=======
             env["server.RemoteIpAddress"] = remoteIpAddress;
             env["server.RemotePort"] = remotePort;
             env["server.LocalIpAddress"] = localIpAddress;
             env["server.LocalPort"] = localPort;
             env["server.IsLocal"] = isLocal;
->>>>>>> Adding env keys for local/remote addr
             return env;
         }
 
