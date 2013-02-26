@@ -36,15 +36,20 @@ namespace Firefly.Owin
                     var hostname = Host(address);
                     if (hostname == null || hostname == "*" || hostname == "+")
                     {
-                        created.Add(factory.Create(app, port));
+                        created.Add(factory.Create(app, new IPEndPoint(IPAddress.Any, port)));
 
-                        Kickstart(new IPEndPoint(IPAddress.Loopback,port));
+                        Kickstart(new IPEndPoint(IPAddress.Loopback, port));
                     }
                     else
                     {
-                        created.Add(factory.Create(app, port, hostname));
+                        foreach (var ipAddress in Dns.GetHostAddresses(hostname))
+                        {
+                            var endpoint = new IPEndPoint(ipAddress, port);
 
-                        Kickstart(new DnsEndPoint(hostname, port));
+                            created.Add(factory.Create(app, endpoint));
+
+                            Kickstart(endpoint);
+                        }
                     }
                 }
             }

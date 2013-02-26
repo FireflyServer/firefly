@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,7 +36,7 @@ namespace Firefly.Http
 
         public IDisposable Create(AppDelegate app, int port)
         {
-            return Create(app, new IPEndPoint(0, port));
+            return Create(app, new IPEndPoint(IPAddress.Any, port));
         }
 
         public IDisposable Create(AppDelegate app, int port, string hostname)
