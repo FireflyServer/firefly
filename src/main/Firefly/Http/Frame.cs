@@ -14,7 +14,8 @@ using Firefly.Utils;
 
 namespace Firefly.Http
 {
-    using AppDelegate = Func<IDictionary<string, object>, Task>;
+    using Microsoft.AspNet.HttpFeature;
+    using AppDelegate = Func<object, Task>;
 
     public enum ProduceEndType
     {
@@ -33,7 +34,7 @@ namespace Firefly.Http
         public Action<ProduceEndType> End;
     }
 
-    public class Frame
+    public class Frame 
     {
         private FrameContext _context;
 
@@ -62,13 +63,15 @@ namespace Firefly.Http
         private MessageBody _messageBody;
         private bool _resultStarted;
         private bool _keepAlive;
-        IDictionary<string, object> _environment;
+        //IDictionary<string, object> _environment;
+        private CallContext _callContext;
 
         CancellationTokenSource _cts = new CancellationTokenSource();
         OutputStream _outputStream;
         InputStream _inputStream;
         DuplexStream _duplexStream;
-        Task _upgradeTask = TaskHelpers.Completed();
+        Task _upgradeTask = _completedTask;
+        static readonly Task _completedTask = Task.FromResult(0);
 
         public Frame(FrameContext context)
         {
@@ -87,7 +90,7 @@ namespace Firefly.Http
 
         public bool Consume(Baton baton, Action<Frame, Exception> callback)
         {
-            for (; ; )
+            for (; ;)
             {
                 switch (_mode)
                 {
@@ -186,26 +189,30 @@ namespace Firefly.Http
 
         private void Execute()
         {
-            _environment = CreateOwinEnvironment();
-
-            _context.App
-                .Invoke(_environment)
-                .Then(() => _upgradeTask)
-                .Then(() => ProduceEnd(null))
-                .Catch(info =>
-                    {
-                        ProduceEnd(info.Exception);
-                        return info.Handled();
-                    });
+            // fire-and-forget
+            ExecuteAsync();
         }
 
-        T Get<T>(string key, T defaultValue = default (T))
+        private async Task ExecuteAsync()
         {
-            object value;
-            return _environment.TryGetValue(key, out value) ? (T)value : defaultValue;
+            Exception error = null;
+            try
+            {
+                _callContext = CreateCallContext();
+                await _context.App.Invoke(_callContext);
+                await _upgradeTask;
+            }
+            catch (Exception ex)
+            {
+                error = ex;
+            }
+            finally
+            {
+                ProduceEnd(error);
+            }
         }
 
-        private IDictionary<string, object> CreateOwinEnvironment()
+        private CallContext CreateCallContext()
         {
             _inputStream = new InputStream(() =>
             {
@@ -244,27 +251,42 @@ namespace Firefly.Http
                 }
             }
 
-            var env = new Dictionary<string, object>();
-            env["owin.Version"] = "1.0";
-            env["owin.RequestProtocol"] = _httpVersion;
-            env["owin.RequestScheme"] = "http";
-            env["owin.RequestMethod"] = _method;
-            env["owin.RequestPath"] = _path;
-            env["owin.RequestPathBase"] = "";
-            env["owin.RequestQueryString"] = _queryString;
-            env["owin.RequestHeaders"] = _requestHeaders;
-            env["owin.RequestBody"] = _inputStream;
-            env["owin.ResponseHeaders"] = _responseHeaders;
-            env["owin.ResponseBody"] = _outputStream;
-            env["owin.CallCancelled"] = _cts.Token;
-            env["opaque.Upgrade"] = (Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>)Upgrade;
-            env["opaque.Stream"] = _duplexStream;
-            env["server.RemoteIpAddress"] = remoteIpAddress;
-            env["server.RemotePort"] = remotePort;
-            env["server.LocalIpAddress"] = localIpAddress;
-            env["server.LocalPort"] = localPort;
-            env["server.IsLocal"] = isLocal;
-            return env;
+            var callContext = new CallContext();
+            var request = (IHttpRequestFeature)callContext;
+            var response = (IHttpResponseFeature)callContext;
+            //var lifetime = (IHttpRequestLifetimeFeature)callContext;
+            request.Protocol = _httpVersion;
+            request.Scheme = "http";
+            request.Method = _method;
+            request.Path = _path;
+            request.PathBase = "";
+            request.QueryString = _queryString;
+            request.Headers = _requestHeaders;
+            request.Body = _inputStream;
+            response.Headers = _responseHeaders;
+            response.Body = _outputStream;
+
+            //var env = new Dictionary<string, object>();
+            //env["owin.Version"] = "1.0";
+            //env["owin.RequestProtocol"] = _httpVersion;
+            //env["owin.RequestScheme"] = "http";
+            //env["owin.RequestMethod"] = _method;
+            //env["owin.RequestPath"] = _path;
+            //env["owin.RequestPathBase"] = "";
+            //env["owin.RequestQueryString"] = _queryString;
+            //env["owin.RequestHeaders"] = _requestHeaders;
+            //env["owin.RequestBody"] = _inputStream;
+            //env["owin.ResponseHeaders"] = _responseHeaders;
+            //env["owin.ResponseBody"] = _outputStream;
+            //env["owin.CallCancelled"] = _cts.Token;
+            //env["opaque.Upgrade"] = (Action<IDictionary<string, object>, Func<IDictionary<string, object>, Task>>)Upgrade;
+            //env["opaque.Stream"] = _duplexStream;
+            //env["server.RemoteIpAddress"] = remoteIpAddress;
+            //env["server.RemotePort"] = remotePort;
+            //env["server.LocalIpAddress"] = localIpAddress;
+            //env["server.LocalPort"] = localPort;
+            //env["server.IsLocal"] = isLocal;
+            return callContext;
         }
 
         bool OnWrite(ArraySegment<byte> arg)
@@ -279,14 +301,12 @@ namespace Firefly.Http
             return _context.Flush(arg);
         }
 
-        void Upgrade(IDictionary<string, object> options, Func<IDictionary<string, object>, Task> callback)
+        void Upgrade(IDictionary<string, object> options, Func<object, Task> callback)
         {
             _keepAlive = false;
             ProduceStart();
 
-            var upgradeTaskSource = new TaskCompletionSource<object>();
-            _upgradeTask = upgradeTaskSource.Task;
-            callback(_environment).CopyResultToCompletionSource(upgradeTaskSource, null);
+            _upgradeTask = callback(_callContext);
         }
 
         void ProduceStart()
@@ -295,9 +315,10 @@ namespace Firefly.Http
 
             _resultStarted = true;
 
+            var response = (IHttpResponseFeature)_callContext;
             var status = ReasonPhrases.ToStatus(
-                Get("owin.ResponseStatusCode", 200),
-                Get<string>("owin.ResponseReasonPhrase"));
+                response.StatusCode,
+                response.ReasonPhrase);
 
             var responseHeader = CreateResponseHeader(status, _responseHeaders);
             _context.Write(responseHeader.Item1);

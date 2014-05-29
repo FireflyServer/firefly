@@ -1,0 +1,16 @@
+﻿{
+    "dependencies": {
+        "Helios" : "0.1-*",
+        "Microsoft.AspNet.Server.WebListener" : "0.1-*",
+        "Firefly" : "0.1-*"
+    },
+    "configurations" : {
+        "net45" : { },
+        "k10" : { }
+    },
+    "commands": {
+        "run": "Microsoft.AspNet.Hosting --server Firefly --server.urls http://localhost:3001/",
+        "web1": "Microsoft.AspNet.Hosting --server Firefly --server.urls http://localhost:3001/",
+        "web2": "Microsoft.AspNet.Hosting --server Microsoft.AspNet.Server.WebListener --server.urls http://localhost:3002/"
+    }
+}

@@ -1,0 +1,19 @@
+﻿{
+    "version": "0.1-alpha-*",
+    "dependencies": {
+        "Microsoft.AspNet.Hosting": "0.1-*"
+    },
+    "configurations": {
+        "k10": {
+            "dependencies": {
+                "System.Net.Sockets": "4.0.0.0",
+                "System.Diagnostics.Tracing": "4.0.10.0",
+                "System.Diagnostics.TextWriterTraceListener": "4.0.0.0",
+                "System.Diagnostics.TraceSource": "4.0.0.0",
+                "System.Threading.ThreadPool": "4.0.10.0",
+                "System.Text.Encoding": "4.0.20.0"
+            }
+        },
+        "net45": { }
+    }
+}

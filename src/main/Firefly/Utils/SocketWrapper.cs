@@ -94,7 +94,7 @@ namespace Firefly.Utils
 
         public void Close()
         {
-            _socket.Close();
+            _socket.Dispose();
         }
     }
 }

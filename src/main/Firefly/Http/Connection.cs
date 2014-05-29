@@ -8,7 +8,7 @@ using Firefly.Utils;
 
 namespace Firefly.Http
 {
-    using AppDelegate = Func<IDictionary<string, object>, Task>;
+    using AppDelegate = Func<object, Task>;
 
     public class Connection
     {
