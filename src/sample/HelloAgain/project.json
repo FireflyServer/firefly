@@ -10,7 +10,7 @@
     },
     "commands": {
         "run": "Microsoft.AspNet.Hosting --server Firefly --server.urls http://localhost:3001/",
-        "web1": "Microsoft.AspNet.Hosting --server Firefly --server.urls http://localhost:3001/;http://localhost:3443",
+        "web1": "Microsoft.AspNet.Hosting --server Firefly --server.urls http://localhost:3001/;https://localhost:3443",
         "web2": "Microsoft.AspNet.Hosting --server Microsoft.AspNet.Server.WebListener --server.urls http://localhost:3002/"
     }
 }
