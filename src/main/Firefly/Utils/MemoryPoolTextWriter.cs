@@ -33,16 +33,15 @@ namespace Firefly.Utils
             _memory = memory;
             _textArray = _memory.AllocChar(_textLength);
             _dataArray = _memory.Empty;
-            _encoder = Encoding.Default.GetEncoder();
+            _encoder = Encoding.UTF8.GetEncoder();
         }
-
         public override Encoding Encoding
         {
             get
             {
-                return Encoding.Default;
+                return Encoding.UTF8;
             }
-        }
+        }       
 
         protected override void Dispose(bool disposing)
         {

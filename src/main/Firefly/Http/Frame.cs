@@ -173,7 +173,7 @@ namespace Firefly.Http
                     }
                     else
                     {
-                        var bytes = Encoding.Default.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
+                        var bytes = Encoding.ASCII.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
                         var isasync =
                             _context.Write(new ArraySegment<byte>(bytes)) &&
                                 _context.Flush(() => continuation(frame, null));
@@ -190,7 +190,7 @@ namespace Firefly.Http
         private void Execute()
         {
             // fire-and-forget
-            ExecuteAsync();
+            ExecuteAsync().Start();
         }
 
         private async Task ExecuteAsync()
@@ -320,6 +320,7 @@ namespace Firefly.Http
                 response.StatusCode,
                 response.ReasonPhrase);
 
+            
             var responseHeader = CreateResponseHeader(status, _responseHeaders);
             _context.Write(responseHeader.Item1);
             responseHeader.Item2.Dispose();
@@ -470,7 +471,7 @@ namespace Firefly.Http
 
         static string GetString(ArraySegment<byte> range, int startIndex, int endIndex)
         {
-            return Encoding.Default.GetString(range.Array, range.Offset + startIndex, endIndex - startIndex);
+            return Encoding.ASCII.GetString(range.Array, range.Offset + startIndex, endIndex - startIndex);
         }
 
 

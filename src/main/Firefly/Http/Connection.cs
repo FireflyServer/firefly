@@ -38,7 +38,7 @@ namespace Firefly.Http
 
         public void Execute()
         {
-            _services.Trace.Event(TraceEventType.Start, TraceMessage.Connection);
+            _services.Trace.Event(TraceEventType.Information, TraceMessage.Connection);
 
             _baton = new Baton(_services.Memory);
 
@@ -192,7 +192,7 @@ namespace Firefly.Http
                         ThreadPool.QueueUserWorkItem(_ => Go(true, null));
                         break;
                     case ProduceEndType.SocketDisconnect:
-                        _services.Trace.Event(TraceEventType.Stop, TraceMessage.Connection);
+                        _services.Trace.Event(TraceEventType.Information, TraceMessage.Connection);
 
                         _baton.Free();
 

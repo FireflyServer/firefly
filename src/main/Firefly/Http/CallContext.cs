@@ -25,6 +25,14 @@ namespace Firefly
 
         IDictionary<string, string[]> IHttpRequestFeature.Headers { get; set; }
 
+        bool IHttpResponseFeature.HeadersSent
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         string IHttpRequestFeature.Method { get; set; }
 
         string IHttpRequestFeature.Path { get; set; }

@@ -25,7 +25,7 @@ namespace Firefly
         public IDisposable Start(IServerInformation serverInformation, Func<object, Task> application)
         {
             var _services = (IFireflyService)serverInformation;
-            _services.Trace.Event(TraceEventType.Start, TraceMessage.ServerFactory);
+            _services.Trace.Event(TraceEventType.Information, TraceMessage.ServerFactory);
 
             var endpoint = new IPEndPoint(IPAddress.Loopback, 3001);
 
@@ -96,10 +96,10 @@ namespace Firefly
             return new Disposable(
                 () =>
                 {
-                    _services.Trace.Event(TraceEventType.Stop, TraceMessage.ServerFactory);
+                    _services.Trace.Event(TraceEventType.Information, TraceMessage.ServerFactory);
 
                     stop = true;
-                    listenSocket.Close();
+                    listenSocket.Dispose();
                     acceptEvent.Dispose();
                 });
         }

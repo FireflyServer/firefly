@@ -13,13 +13,13 @@ namespace Firefly.Streams
             _inputStream = inputStream;
             _outputStream = outputStream;
         }
-
+#if ASPNET50
         public override void Close()
         {
             _inputStream.Close();
             _outputStream.Close();
         }
-
+#endif
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -33,7 +33,7 @@ namespace Firefly.Streams
         {
             _outputStream.Flush();
         }
-
+#if ASPNET50
         public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
         {
             return _inputStream.BeginRead(buffer, offset, count, callback, state);
@@ -53,7 +53,7 @@ namespace Firefly.Streams
         {
             _outputStream.EndWrite(asyncResult);
         }
-
+#endif
         public override long Seek(long offset, SeekOrigin origin)
         {
             return _inputStream.Seek(offset, origin);

@@ -57,7 +57,7 @@ namespace Firefly.Utils
             if (continuation != null)
             {
                 try { continuation.Invoke(); }
-                catch (Exception ex)
+                catch
                 {
                     _services.Trace.Event(TraceEventType.Warning, TraceMessage.InputSenderCallbackError);
                 }
@@ -182,7 +182,7 @@ namespace Firefly.Utils
                 {
                     callback.Invoke(result);
                 }
-                catch (Exception ex)
+                catch
                 {
                     _services.Trace.Event(TraceEventType.Warning, TraceMessage.InputSenderCallbackError);
                 }

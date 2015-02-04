@@ -9,10 +9,6 @@ namespace Firefly.Streams
     {
         readonly Lazy<InputSender> _sender;
 
-        int _readLength;
-        bool _readFin;
-        Exception _readError;
-
         public InputStream(Func<InputSender> subscribe)
         {
             _sender = new Lazy<InputSender>(subscribe);
@@ -66,7 +62,7 @@ namespace Firefly.Streams
             }
             return result.Message.Buffer.Count;
         }
-
+#if ASPNET50
         public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
         {
             var readContext = new ReadContext { Self = this, Callback = callback, AsyncState = state };
@@ -105,7 +101,7 @@ namespace Firefly.Streams
             }
             return readContext.Result.Message.Buffer.Count;
         }
-
+#endif
         class ReadContext : IAsyncResult
         {
             public InputStream Self { get; set; }
