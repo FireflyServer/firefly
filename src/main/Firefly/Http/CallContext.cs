@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNet.HttpFeature;
+﻿using Microsoft.AspNet.Http.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.IO;

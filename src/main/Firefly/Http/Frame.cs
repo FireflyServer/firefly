@@ -14,7 +14,7 @@ using Firefly.Utils;
 
 namespace Firefly.Http
 {
-    using Microsoft.AspNet.HttpFeature;
+    using Microsoft.AspNet.Http.Interfaces;
     using AppDelegate = Func<object, Task>;
 
     public enum ProduceEndType
@@ -189,8 +189,10 @@ namespace Firefly.Http
 
         private void Execute()
         {
-            // fire-and-forget
-            ExecuteAsync().Start();
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                              // fire-and-forget
+            ExecuteAsync();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         }
 
         private async Task ExecuteAsync()
