@@ -14,7 +14,7 @@ using Firefly.Utils;
 
 namespace Firefly.Http
 {
-    using Microsoft.AspNet.HttpFeature;
+    using Microsoft.AspNet.Http.Interfaces;
     using AppDelegate = Func<object, Task>;
 
     public enum ProduceEndType
