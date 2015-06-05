@@ -11,6 +11,7 @@ using Firefly.Http;
 using System.Net;
 using System.Collections.Generic;
 using System.Globalization;
+using Microsoft.AspNet.FeatureModel;
 
 namespace Firefly
 {
@@ -27,7 +28,7 @@ namespace Firefly
             return information;
         }
 
-        public IDisposable Start(IServerInformation serverInformation, Func<object, Task> application)
+        public IDisposable Start(IServerInformation serverInformation, Func<IFeatureCollection, Task> application)
         {
             var services = (ServerInformation)serverInformation;
             services.Trace.Event(TraceEventType.Information, TraceMessage.ServerFactory);
@@ -48,7 +49,7 @@ namespace Firefly
                 });
         }
 
-        private IDisposable StartListener(IPEndPoint endPoint, IFireflyService service, Func<object, Task> application)
+        private IDisposable StartListener(IPEndPoint endPoint, IFireflyService service, Func<IFeatureCollection, Task> application)
         {
             var listenSocket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.IP);
             listenSocket.Bind(endPoint);

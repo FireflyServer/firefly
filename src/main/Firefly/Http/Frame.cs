@@ -9,13 +9,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Firefly.Streams;
 using Firefly.Utils;
+using Microsoft.AspNet.FeatureModel;
 
 // ReSharper disable AccessToModifiedClosure
 
 namespace Firefly.Http
 {
-    using Microsoft.AspNet.Http.Interfaces;
-    using AppDelegate = Func<object, Task>;
+    using Microsoft.AspNet.Http;
+    using AppDelegate = Func<IFeatureCollection, Task>;
 
     public enum ProduceEndType
     {
@@ -201,7 +202,7 @@ namespace Firefly.Http
             try
             {
                 _callContext = CreateCallContext();
-                await _context.App.Invoke(_callContext);
+                await _context.App.Invoke(_callContext.Features);
                 await _upgradeTask;
             }
             catch (Exception ex)

@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNet.Http.Interfaces;
+﻿using Microsoft.AspNet.Http;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.AspNet.FeatureModel;
 
 namespace Firefly
 {
@@ -12,9 +13,12 @@ namespace Firefly
         IHttpRequestFeature, 
         IHttpResponseFeature
     {
+        public IFeatureCollection Features { private set; get; } = new FeatureCollection();
         public CallContext()
         {
             ((IHttpResponseFeature)this).StatusCode = 200;
+            Features.Add(typeof(IHttpRequestFeature), this);
+            Features.Add(typeof(IHttpResponseFeature), this);
         }
 
         Stream IHttpResponseFeature.Body { get; set; }
@@ -48,6 +52,11 @@ namespace Firefly
         string IHttpRequestFeature.Scheme { get; set; }
 
         int IHttpResponseFeature.StatusCode { get; set; }
+
+        public void OnResponseCompleted(Action<object> callback, object state)
+        {
+            callback(state);
+        }
 
         void IHttpResponseFeature.OnSendingHeaders(Action<object> callback, object state)
         {

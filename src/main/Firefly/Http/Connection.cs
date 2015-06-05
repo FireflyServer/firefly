@@ -5,10 +5,11 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Firefly.Utils;
+using Microsoft.AspNet.FeatureModel;
 
 namespace Firefly.Http
 {
-    using AppDelegate = Func<object, Task>;
+    using AppDelegate = Func<IFeatureCollection, Task>;
 
     public class Connection
     {
